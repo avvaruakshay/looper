@@ -45,7 +45,7 @@ int main(int argc, char* argv[]) {
     string line;
     bitSeqWindow window;    
 
-    cout << endl << "Searching for tandem repeats in " << argv[1] << endl;
+    cout << endl << "Searching for tandem repeats in " << fin << endl;
     cout << "Min-motif: " << m << "\t Max-motif: " << M;
     cout << "\t Length-cutoff: " << cutoff <<  endl << endl;
 
