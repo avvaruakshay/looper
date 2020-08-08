@@ -1,4 +1,6 @@
 # 100PER
+![Looper](./looper_logo.svg)
+
 [![Build](https://img.shields.io/badge/Build-passing-brightgreen.svg)]()
 [![License](https://img.shields.io/badge/Licence-MIT-blue.svg)]()
 
