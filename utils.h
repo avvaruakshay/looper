@@ -6,6 +6,7 @@
 */
 #include <cstdint>
 #include <iostream>
+#include <unordered_map>
 #include <bitset>
 #include <fstream>
 
@@ -74,7 +75,7 @@ namespace utils {
         cout << "Optional arguments: " << endl;
         cout << "-m\t<int>\tMinimum motif size. Default: 1" << endl;
         cout << "-M\t<int>\tMaximum motif size. Default: 6" << endl;
-        cout << "-l\t<int>\tCutoff repeat length. Default: 12 or 2*M."<< endl;
+        cout << "-l\t<int>\tCutoff repeat length. Default: 2*M."<< endl;
         cout << " \t \tShould atleast be twice of maximum motif size." << endl;
         cout << "-o\t<file>\tOutput file name.";
         cout << "Default: Input file name + _looper.tsv"<< endl;
@@ -111,6 +112,7 @@ namespace utils {
         }
         if (m == 0) { m = 1; }
         if (M == 0) { M = 6; }
+        if (fout == "") { fout = fin + "_looper.tsv"; }
         utils::motif_range_error(m, M);
         if (cutoff == 0) { cutoff = 2*M; }
     }
@@ -184,7 +186,7 @@ namespace utils {
      *  @return string of repeat class motif with the strand orientation;
      *      example: "AGG+"
     */
-    string get_repeat_class(uint64_t seq, int l, int m) {
+    string get_repeat_class(uint64_t seq, int l, int m, unordered_map<string, string> &rClassMap) {
         string strand;
         // Throw error if length cutoff is smaller than 
         // twice the length of largest motif

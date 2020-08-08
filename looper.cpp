@@ -49,8 +49,6 @@ int main(int argc, char* argv[]) {
     cout << "Min-motif: " << m << "\t Max-motif: " << M;
     cout << "\t Length-cutoff: " << cutoff <<  endl << endl;
 
-    cout
-
     uint64_t start_time = duration_cast<milliseconds>(
         system_clock::now().time_since_epoch()
     ).count();
@@ -158,7 +156,7 @@ int main(int argc, char* argv[]) {
                                     if (rClassMap.find(motif) != rClassMap.end()) { 
                                         repeat_class = rClassMap[motif];
                                     } else {
-                                        repeat_class = utils::get_repeat_class(window.seq, cutoff, atomicity);
+                                        repeat_class = utils::get_repeat_class(window.seq, cutoff, atomicity, rClassMap);
                                     }
                                 }
                             }
