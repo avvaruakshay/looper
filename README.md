@@ -3,7 +3,7 @@
 [![Build](https://img.shields.io/badge/Build-passing-brightgreen.svg)]()
 [![License](https://img.shields.io/badge/Licence-MIT-blue.svg)]()
 
-<img src="./looper_logo.svg" alt="logo" width="200"/>
+<img src="./looper_logo.jpg" alt="logo" height="80"/>
 
 100PER pronounced as Looper is a DNA tandem repeat identification tool. Tandem 
 repeats are important genomic sequences which have functional and evolutionary 
