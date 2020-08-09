@@ -41,8 +41,8 @@ valid FASTA file.
 
 ### `-o`
 **Expects:** *STRING (to be used as filename)*<br>
-**Default:** *Input Filename + _perf.tsv (see below)*<br>
-If this option is not provided, the default output filename will be the same as the input filename, with its extension replaced with '_perf.tsv'. For example, if the input filename is `my_seq.fa`, the default output filename will be `my_seq.fa_perf.tsv`. If the input filename does not have any extension, `_perf.tsv` will be appended to the filename. Please note that even in the case of no identified SSRs, the output file is still created (therefore overwriting any previous file of the same name) but with no content in the file.
+**Default:** *Input Filename + _looper.tsv (see below)*<br>
+If this option is not provided, the default output filename will be the same as the input filename, with its extension replaced with '_looper.tsv'. For example, if the input filename is `my_seq.fa`, the default output filename will be `my_seq.fa_looper.tsv`. If the input filename does not have any extension, `_looper.tsv` will be appended to the filename. Please note that even in the case of no identified SSRs, the output file is still created (therefore overwriting any previous file of the same name) but with no content in the file.
 #### Output for fasta
 The output is a tab-delimited file, with one SSR record per line. 
 The output columns follow the [BED](https://genome.ucsc.edu/FAQ/FAQformat.html) format. The details of the columns are given below:
@@ -75,17 +75,24 @@ YHet    137144    137466    AAGAC   322     -       64      CTTGT
 ### `-m`
 **Expects:** *INTEGER*<br>
 **Default:** *1*<br>
-Minimum length of motifs to be considered. By default, PERF ignores redundant motifs. For example, a stretch of 12 A's is considered a monomer repeat of 12 A's rather than a dimer repeat of 6 AA's. However, this is only true if `-m` is set to 1. If for example, `-m` is set to 2, then stretches of 12 A's are reported as dimer AA repeats. If this behavior isn't desired, we suggest using the `-rep` option (see above) to specify the motifs that should/shouldn't be included.
+Minimum length of motifs to be considered. By default, looper ignores redundant 
+motifs. For example, a stretch of 12 A's is considered a monomer repeat of 12 
+A's rather than a dimer repeat of 6 AA's. 
 
 ### `-M`
 **Expects:** *INTEGER*<br>
 **Default:** *6*<br>
-Maximum length of motifs to be considered. Setting a large value of `-M` has a non-trivial effect on both the runtime and memory usage of PERF. This is noticeable with `-M` values above 10.
+Maximum length of motifs to be considered. Setting a large value of `-M` has a 
+non-trivial effect on both the runtime and memory usage of looper.
 
 ### `-l`
 **Expects:** *INTEGER*<br>
-**Default:** *12*<br>
-Minimum length cut-off to be considered when finding an SSR. The same cut-off will apply for SSRs of all motif lengths, even if the motif length is not a divisor of this value. In such cases, SSRs that end with a partial motif are also picked if they pass the length cut-off.
+**Default:** *2* * *M*<br>
+Minimum length cut-off to be considered when finding an SSR. The same cut-off 
+will apply for SSRs of all motif lengths, even if the motif length is not a 
+divisor of this value. In such cases, SSRs that end with a partial motif are 
+also picked if they pass the length cut-off. This value should be at least twice
+of the maximum motif size.
 
 ## Contact
 For queries or suggestions, please contact:
