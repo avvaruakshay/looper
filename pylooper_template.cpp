@@ -32,14 +32,20 @@ int main(int argc, char* argv[]) {
     string fin = argv[1];
     string fout = argv[2];
 
-    int sequences = utils::count_seq(fin); // total number of sequences
+    uint64_t gsize = 0, GC = 0;
+    int sequences = 0;
+    utils::count_seq(fin, sequences, gsize, GC); // total number of sequences
     ifstream ins(fin); // input fasta file
     utils::input_file_error(ins.good(), fin);
     ofstream out(fout); // output file
+    out << "#FileName: " << fin << endl;
+    out << "#GenomeSize: " << gsize << endl;
+    out << "#GC%: " << (float(GC) / float(gsize))*100 << endl;
+    out << "#NumSeq: " << sequences << endl;
     string line;
     bitSeqWindow window;    
     
-    $ python_input
+    $ python_input;
 
     cout << endl << "Searching for tandem repeats in " << fin << endl;
     cout << "Min-motif: " << m << "\t Max-motif: " << M;

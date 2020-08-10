@@ -167,15 +167,23 @@ namespace utils {
      *  @param filename name of the fasta file
      *  @return number of sequences in the file (int)
     */
-    int count_seq(string filename) {
+    int count_seq(string filename, int &sequences, uint64_t &gsize, uint64_t &GC) {
         ifstream file(filename);
         string fline;
-        int seq_count = 0;
         while (getline(file, fline)) {
-            if (fline[0] == '>') { seq_count += 1; }
+            if (fline[0] == '>') { sequences += 1; }
+            else {
+                for(const auto c: fline) {
+                    gsize += 1;
+                    switch(c) {
+                        case 'c': case 'C': GC += 1; break;
+                        case 'g': case 'G': GC += 1; break;
+                        default: continue;
+                    }
+                }
+            }
         }
         file.close();
-        return seq_count;
     }
 
     /*

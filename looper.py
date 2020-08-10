@@ -1,11 +1,10 @@
 #!/usr/bin/env python
-import os, sys
-import math
-from datetime import datetime
-import argparse
+import os, argparse
+from os.path import splitext
+
+from analyse import generate_defaultInfo
 
 """Edits the ebeta.cpp template to compile user inputs as constants"""
-
 
 
 def motif_factors(m, M):
@@ -40,6 +39,9 @@ def getArgs():
     optional.add_argument('-m', '--min-motif-size', type=int, metavar='<INT>', default=1, help='Minimum size of a repeat motif in bp (Not allowed with -rep)')
     optional.add_argument('-M', '--max-motif-size', type=int, metavar='<INT>', default=6, help='Maximum size of a repeat motif in bp (Not allowed with -rep)')
     optional.add_argument('-l', '--min-length', type=int, metavar='<INT>', help='Minimum length cutoff of repeat')
+    
+    # Analysis options
+    optional.add_argument('-a', '--analyse', action='store_true', default=False, help='Generate a summary HTML report.')
 
     args = parser.parse_args()
 
@@ -47,61 +49,63 @@ def getArgs():
         args.min_length = 2 * args.max_motif_size
     
     if args.output is None:
-        args.output = open(splitext(args.input)[0] + '_looper.tsv', 'w')
+        args.output = splitext(args.input)[0] + '_looper.tsv'
 
     return args
 
-args = getArgs()
+def main():
+    """Main function of looper"""
 
-m = args.min_motif_size
-M = args.max_motif_size
-cutoff = args.min_length
 
-motif_checks = motif_factors(m, M)
-N = len(motif_checks)
-motif_checks_string = '{'
-for a in motif_checks: motif_checks_string += str(a) + ','
-motif_checks_string = motif_checks_string[:-1] + '}'
+    args = getArgs()
 
-# NORM = str(int('1'*(2*cutoff), 2)) + 'ull'
-divisor = []
-rem_shift = []
-for i, a in enumerate(motif_checks): 
-    d = cutoff // motif_checks[i]
-    r = cutoff % motif_checks[i]
-    D = ('0'*((2*a)-1) + '1')*d + '0'*(2*r)
-    divisor.append(int(D, 2))
-    rem_shift.append( int(2*(cutoff - (cutoff % motif_checks[i]))) )
+    m = args.min_motif_size
+    M = args.max_motif_size
+    cutoff = args.min_length
 
-# norm_string = f'uint64_t NORM = {NORM}'
+    motif_checks = motif_factors(m, M)
+    N = len(motif_checks)
+    motif_checks_string = '{'
+    for a in motif_checks: motif_checks_string += str(a) + ','
+    motif_checks_string = motif_checks_string[:-1] + '}'
 
-div_string = f'uint64_t divisor[{N}] = ' + '{'
-for a in divisor: div_string += str(a) + ','
-div_string = div_string[:-1] + '}'
+    divisor = []
+    rem_shift = []
+    for i, a in enumerate(motif_checks): 
+        d = cutoff // motif_checks[i]
+        r = cutoff % motif_checks[i]
+        D = ('0'*((2*a)-1) + '1')*d + '0'*(2*r)
+        divisor.append(int(D, 2))
+        rem_shift.append( int(2*(cutoff - (cutoff % motif_checks[i]))) )
 
-rem_shift_string = f'uint rem_shift[{N}] = ' + '{'
-for a in rem_shift: rem_shift_string += str(a) + ','
-rem_shift_string = rem_shift_string[:-1] + '}'
+    div_string = f'uint64_t divisor[{N}] = ' + '{'
+    for a in divisor: div_string += str(a) + ','
+    div_string = div_string[:-1] + '}'
 
-script = open('./pylooper.cpp', 'w')
+    rem_shift_string = f'uint rem_shift[{N}] = ' + '{'
+    for a in rem_shift: rem_shift_string += str(a) + ','
+    rem_shift_string = rem_shift_string[:-1] + '}'
 
-with open('./pylooper_template.cpp') as fh:
-    for line in fh:
-        line = line.rstrip()
-        if '$' in line:
-            prefix = line[:line.find('$')]
-            line = f'{prefix}uint cutoff = {cutoff};\
-                \n{prefix}uint m = {m};\
-                \n{prefix}uint M = {M};\
-                \n{prefix}uint motif_checks[{N}] = {motif_checks_string};\
-                \n{prefix}uint N = {N};\
-                \n{prefix}{div_string};\
-                \n{prefix}{rem_shift_string};'
-        print(line, file=script)
-script.close()
+    script = open('./pylooper.cpp', 'w')
+    with open('./pylooper_template.cpp') as fh:
+        for line in fh:
+            line = line.rstrip()
+            if '$' in line:
+                prefix = line[:line.find('$')]
+                line = f'{prefix}uint cutoff = {cutoff};\
+                    \n{prefix}uint m = {m};\
+                    \n{prefix}uint M = {M};\
+                    \n{prefix}uint motif_checks[{N}] = {motif_checks_string};\
+                    \n{prefix}uint N = {N};\
+                    \n{prefix}{div_string};\
+                    \n{prefix}{rem_shift_string};'
+            print(line, file=script)
+    script.close()
+    
+    os.system('g++ ./pylooper.cpp -O3 -o pylooper')
+    os.system(f'./pylooper  {args.input} {args.output}')
 
-# print('Script generated - ', datetime.now()-start)
-os.system('g++ ./pylooper.cpp -O3 -o pylooper')
-# print('Script compiled - ', datetime.now()-start)
-os.system(f'./pylooper  {args.input} {args.output}')
-# print('Complete - ', datetime.now()-start)
+    if args.analyse: generate_defaultInfo(args)
+
+if __name__ == "__main__":
+    main()
