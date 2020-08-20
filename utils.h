@@ -167,7 +167,7 @@ namespace utils {
      *  @param filename name of the fasta file
      *  @return number of sequences in the file (int)
     */
-    int count_seq(string filename, int &sequences, uint64_t &gsize, uint64_t &GC) {
+    void count_seq(string filename, int &sequences, uint64_t &gsize, uint64_t &GC) {
         ifstream file(filename);
         string fline;
         while (getline(file, fline)) {

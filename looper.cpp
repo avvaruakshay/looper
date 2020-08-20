@@ -18,8 +18,8 @@ unordered_map<string, string> rClassMap;
 // Data structure to track 2-bit sequence of scanned window in the genome
 // and it's location
 struct bitSeqWindow {
-    uint64_t seq, count;
-    signed int cutoff;
+    uint64_t seq = 0, count = 0;
+    signed int cutoff = 0;
     bitSeqWindow() { reset(); }
     void reset() { seq = count = cutoff = 0;}
 };
@@ -37,11 +37,14 @@ int main(int argc, char* argv[]) {
         utils::length_cutoff_error(M, cutoff);
     }
 
-
-    int sequences = utils::count_seq(fin); // total number of sequences
+    uint64_t gsize = 0, GC = 0;
+    int sequences = 0;
+    utils::count_seq(fin, sequences, gsize, GC); // total number of sequences
     ifstream ins(fin); // input fasta file
     utils::input_file_error(ins.good(), fin);
     ofstream out(fout); // output file
+    for (int i=0; i<200; i++) { out << " "; }
+    out << endl;
     string line;
     bitSeqWindow window;    
 
@@ -89,7 +92,7 @@ int main(int argc, char* argv[]) {
                 out << seq_name << "\t" << start << "\t" << end \
                 << "\t" << repeat_class.substr(0, atomicity) << "\t" << rlen \
                 << "\t" << repeat_class.substr(atomicity, 1) << "\t" \
-                << rlen/atomicity << "\t" << motif << endl;
+                << rlen/atomicity << "\t" << motif << '\n';
             }
             seq_name = line.substr(1);
             window.reset(); start = -1;
@@ -120,8 +123,8 @@ int main(int argc, char* argv[]) {
             for(const auto c: line) {
                 switch(c) {
                     case 'a': case 'A': break;
-                    case 'c': case 'C': window.seq |= 1ull; break;
-                    case 'g': case 'G': window.seq |= 2ull; break;
+                    case 'c': case 'C': window.seq |= 1ull; GC += 1; break;
+                    case 'g': case 'G': window.seq |= 2ull; GC += 1; break;
                     case 't': case 'T': window.seq |= 3ull; break;
                     case 'N': case 'n': 
                         window.seq = 0; window.cutoff = -1;
@@ -131,7 +134,7 @@ int main(int argc, char* argv[]) {
                             << "\t" << repeat_class.substr(0, atomicity) << \
                             "\t" << rlen << "\t" << \
                             repeat_class.substr(atomicity, 1) << "\t" \
-                            << rlen/atomicity << "\t" << motif << endl;
+                            << rlen/atomicity << "\t" << motif << '\n';
                         }
                         start = -1;
                         break;
@@ -140,6 +143,7 @@ int main(int argc, char* argv[]) {
                 window.count += 1;
                 window.cutoff += 1;
                 window.seq &= NORM;
+                gsize += 1;
 
                 if (window.cutoff >= cutoff) { // To be optimized
                     repeat_check = 0;
@@ -168,7 +172,7 @@ int main(int argc, char* argv[]) {
                         out << seq_name << "\t" << start << "\t" << end \
                         << "\t" << repeat_class.substr(0, atomicity) << "\t" \
                         << rlen << "\t" << repeat_class.substr(atomicity, 1) \
-                        << "\t" << rlen/atomicity << "\t" << motif << endl;
+                        << "\t" << rlen/atomicity << "\t" << motif << '\n';
                         start = -1;
                     }
                 }
@@ -181,7 +185,7 @@ int main(int argc, char* argv[]) {
         out << seq_name << "\t" << start << "\t" << end \
         << "\t" << repeat_class.substr(0, atomicity) << "\t" << rlen \
         << "\t" << repeat_class.substr(atomicity, 1) << "\t" \
-        << rlen/atomicity << "\t" << motif << endl;
+        << rlen/atomicity << "\t" << motif << '\n';
     }
 
     uint64_t end_time = duration_cast<milliseconds>(
@@ -201,6 +205,11 @@ int main(int argc, char* argv[]) {
     cout << time_per_seq << " sec/seq" << endl;
     cout << "Total time taken: " << total_time << " seconds" << endl;
 
+    out.clear(); out.seekp(0);
+    out << "#FileName: " << fin << endl;
+    out << "#GenomeSize: " << gsize << endl;
+    out << "#GC%: " << (float(GC) / float(gsize))*100 << endl;
+    out << "#NumSeq: " << sequences;
     ins.close(); out.close();
     return EXIT_SUCCESS;
 }

@@ -8,6 +8,7 @@ from pprint import pprint
 
 from utils import kmers, get_cycles, build_cycVariations, rev_comp
 
+kmer_names = ["Monomer","Dimer","Trimer","Tetramer","Pentamer","Hexamer","Heptamer","Octamer","Nonamer","Decamer","Undecamer","Dodecamer","Tridecamer","Tetradecamer","Pentadecamer","Hexadecamer","Heptadecamer","Octadecamer","Nonadecamer","Icosamer","Uncosamer","Docosamer","Tricosamer","Tetracosamer","Pentacosamer","Hexacosamer","Heptacosamer","Octacosamer","Nonacosamer","Triacontamer","Untriacontamer","Dotriacontamer","Tritriacontamer","Tetratriacontamer","Pentatriacontamer","Hexatriacontamer","Heptatriacontamer","Octatriacontamer","Nonatriacontamer","Tetracontamer","Untetracontamer","Dotetracontamer","Tritetracontamer","Tetratetracontamer","Pentatetracontamer","Hexatetracontamer","Heptatetracontamer","Octatetracontamer","Nonatetracontamer","Pentacontamer"]
 def generate_defaultInfo(args):
     repeats_file = args.output
     input_file = args.input
@@ -29,14 +30,14 @@ def generate_defaultInfo(args):
 
     plot_data = {}
     defaultInfo = {}
-    defaultInfo['info'] = { 'SeqInfo': {}, 'RepInfo': {} }
+    defaultInfo['info'] = { 'seqInfo': {}, 'repInfo': {} }
 
     with open(repeats_file, 'r') as fh:
         for line in fh:
             line = line.strip()
             if line.startswith('#'):
                 fields = line[1:].split(': ')
-                defaultInfo['info']['SeqInfo'][fields[0]] = fields[1]
+                defaultInfo['info']['seqInfo'][fields[0]] = fields[1]
             else:
                 fields = line.split('\t')
                 fields = line.split('\t')
@@ -55,6 +56,7 @@ def generate_defaultInfo(args):
                 repeat_actual = fields[7]
 
                 if repeat_class not in repeat_classes:
+                    kmer_classes[kmer_names[len(repeat_class)-1]].append(repeat_class)
                     repeat_classes.append(repeat_class)
                     cyclical_variations[repeat_class] = build_cycVariations(repeat_class)
 
@@ -87,85 +89,78 @@ def generate_defaultInfo(args):
                     most_units[-1] = fields
                     most_units.sort(key=lambda x: x[6])
                     most_units.reverse()
-    
-    total_bases = int(defaultInfo['info']['SeqInfo']['GenomeSize'])
-    defaultInfo['info']['RepInfo']['PlotData'] = plot_data
-    defaultInfo['info']['RepInfo']['NumRepClasses'] = len(plot_data.keys())
-    defaultInfo['info']['RepInfo']['TotalRepBases'] = total_repeat_bases
-    defaultInfo['info']['RepInfo']['TotalRepFreq'] = total_repeat_freq
-    defaultInfo['info']['RepInfo']['PercentGenomeCovered'] = \
+    repeat_options = ""
+    kmers = list(kmer_classes.keys())
+    kmers.sort(key=lambda x: kmer_names.index(x))
+    for kmer in kmers:
+        repeat_options += '<optgroup label="%s">' %(kmer)
+        for r in kmer_classes[kmer]:
+            repeat_options += '<option value="%s">%s</option>' %(r, r)
+        repeat_options += '</optgroup>'
+
+    print(repeat_options)
+
+    total_bases = int(defaultInfo['info']['seqInfo']['Total_bases'])
+    defaultInfo['info']['repInfo']['lenFrequency'] = plot_data
+    defaultInfo['info']['repInfo']['numRepClasses'] = len(plot_data.keys())
+    defaultInfo['info']['repInfo']['totalRepBases'] = total_repeat_bases
+    defaultInfo['info']['repInfo']['totalRepFreq'] = total_repeat_freq
+    defaultInfo['info']['repInfo']['percentGenomeCovered'] = \
       str(round((total_repeat_bases/total_bases)*100, 2)) + "%"
-    defaultInfo['info']['RepInfo']['RepDensityByFreq'] = \
+    defaultInfo['info']['repInfo']['repDensityByFreq'] = \
       round((total_repeat_freq/total_bases)*1000000, 2)
-    defaultInfo['info']['RepInfo']['RepDensityByBases'] = \
+    defaultInfo['info']['repInfo']['repDensityByBases'] = \
       round((total_repeat_bases/total_bases)*1000000, 2)
-    defaultInfo['info']['RepInfo']['minLength'] = min_length
-    defaultInfo['info']['RepInfo']['minUnits'] = min_units
-    defaultInfo['info']['RepInfo']['LongestRepeats'] = []
-    defaultInfo['info']['RepInfo']['MostRepeatUnits'] = []
+    defaultInfo['info']['repInfo']['minLength'] = min_length
+    defaultInfo['info']['repInfo']['minUnits'] = min_units
+    defaultInfo['info']['repInfo']['longestRepeats'] = []
+    defaultInfo['info']['repInfo']['mostRepeatUnits'] = []
+    defaultInfo['info']['repInfo']['allRepClasses'] = repeat_classes
     for a in longest_lengths:
         testDict = {
-            'Seq': a[0], 'Start': a[1], 'End': a[2], 'RepClass': a[3], 
-            'RepLength': a[4], 'RepOri': a[5], 'RepUnit': a[6], 'ActualRep': a[7]
+            'seq': a[0], 'start': a[1], 'stop': a[2], 'repClass': a[3], 
+            'repLength': a[4], 'repOri': a[5], 'repUnit': a[6], 'actualRep': a[7]
         }
-        defaultInfo['info']['RepInfo']['LongestRepeats'].append(testDict)
+        defaultInfo['info']['repInfo']['longestRepeats'].append(testDict)
     for a in most_units:
         testDict = {
-            'Seq': a[0], 'Start': a[1], 'End': a[2], 'RepClass': a[3], 
-            'RepLength': a[4], 'RepOri': a[5], 'RepUnit': a[6], 'ActualRep': a[7]
+            'seq': a[0], 'start': a[1], 'stop': a[2], 'repClass': a[3], 
+            'repLength': a[4], 'repOri': a[5], 'repUnit': a[6], 'actualRep': a[7]
         }
-        defaultInfo['info']['RepInfo']['MostRepeatUnits'].append(testDict)
+        defaultInfo['info']['repInfo']['mostRepeatUnits'].append(testDict)
     defaultInfo = 'const data =' + json.dumps(defaultInfo)
-    print(defaultInfo)
-    # writetoHTML(html_report, defaultInfo, repeat_options, 'fasta')
+    writetoHTML(html_report, defaultInfo, repeat_options)
 
 
-def writetoHTML(html_file, defaultInfo, repeat_options, input_format):
+def writetoHTML(html_file, defaultInfo, repeat_options):
     html_handle = open(html_file, 'w')
     current_dir = os.path.dirname(__file__)
 
-    template = open('%s/lib/template_%s.html' %(current_dir, input_format), 'r').read()
+    template = open('%s/lib/looper_template.html' %(current_dir), 'r').read()
 
     fontawesome_js = open('%s/lib/src/all.js' %(current_dir), 'r').read()
-    semantic_css = open('%s/lib/styles/semantic.min.css' %(current_dir), 'r').read()
     multiselect_css = open('%s/lib/styles/multi-select.min.css' %(current_dir), 'r').read()
-    apexcharts_css = open('%s/lib/styles/apexcharts.min.css' %(current_dir), 'r').read()
     main_css = open('%s/lib/styles/main.css' %(current_dir), 'r').read()
 
     jquery_js = open("%s/lib/src/jquery-3.5.0.min.js" %(current_dir), "r").read()
-    semantic_js = open("%s/lib/src/semantic.min.js" %(current_dir), "r").read()
     multiselect_js = open('%s/lib/src/jquery.multi-select.min.js' %(current_dir), 'r').read()
-    apexcharts_js = open('%s/lib/src/apexcharts.min.js' %(current_dir), 'r').read()
-    lodash_js = open('%s/lib/src/lodash.min.js' %(current_dir), 'r').read()
-    main_js = open('%s/lib/src/main_%s.js' %(current_dir, input_format), 'r').read()
-    tables_js = open('%s/lib/src/tables_%s.js' %(current_dir, input_format), 'r').read()
-    annocharts_js = ''
-    if input_format == 'fasta':
-        annocharts_js = open('%s/lib/src/anno_charts.js' %(current_dir), 'r').read()
+    echarts_js = open('%s/lib/src/echarts.min.js' %(current_dir), 'r').read()
+    main_js = open('%s/lib/src/main.js' %(current_dir), 'r').read()
+    tables_js = open('%s/lib/src/tables.js' %(current_dir), 'r').read()
 
     template = template.format(
-        fontawesome_js = fontawesome_js, 
-        semantic_css = semantic_css, 
+        fontawesome_js = fontawesome_js,
         multiselect_css = multiselect_css, 
-        apexcharts_css = apexcharts_css, 
         main_css = main_css, 
         jquery_js = jquery_js, 
-        semantic_js = semantic_js, 
         multiselect_js = multiselect_js, 
-        apexcharts_js = apexcharts_js, 
-        lodash_js = lodash_js, 
+        echarts_js = echarts_js, 
         analyse_data_js = defaultInfo, 
         main_js = main_js, 
         tables_js = tables_js, 
-        annocharts_js = annocharts_js,
         repeat_options = repeat_options,
     )
 
     print(template, file=html_handle)
     html_handle.close()
     print("HTML report successfully saved to " + html_file)
-
-
-def get_parameters(args):
-    runCommand = 'PERF' + ' '.join(sys.argv)
-

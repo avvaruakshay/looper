@@ -38,10 +38,10 @@ int main(int argc, char* argv[]) {
     ifstream ins(fin); // input fasta file
     utils::input_file_error(ins.good(), fin);
     ofstream out(fout); // output file
-    out << "#FileName: " << fin << endl;
-    out << "#GenomeSize: " << gsize << endl;
-    out << "#GC%: " << (float(GC) / float(gsize))*100 << endl;
-    out << "#NumSeq: " << sequences << endl;
+    out << "#File_name: " << fin << '\n';
+    out << "#Total_bases: " << gsize << '\n';
+    out << "#GC: " << (float(GC) / float(gsize))*100 << '\n';
+    out << "#Total_sequences: " << sequences << '\n';
     string line;
     bitSeqWindow window;    
     
@@ -80,7 +80,7 @@ int main(int argc, char* argv[]) {
                 out << seq_name << "\t" << start << "\t" << end \
                 << "\t" << repeat_class.substr(0, atomicity) << "\t" << rlen \
                 << "\t" << repeat_class.substr(atomicity, 1) << "\t" \
-                << rlen/atomicity << "\t" << motif << endl;
+                << rlen/atomicity << "\t" << motif << '\n';
             }
             seq_name = line.substr(1);
             window.reset(); start = -1;
@@ -122,7 +122,7 @@ int main(int argc, char* argv[]) {
                             << "\t" << repeat_class.substr(0, atomicity) << \
                             "\t" << rlen << "\t" << \
                             repeat_class.substr(atomicity, 1) << "\t" \
-                            << rlen/atomicity << "\t" << motif << endl;
+                            << rlen/atomicity << "\t" << motif << '\n';
                         }
                         start = -1;
                         break;
@@ -159,7 +159,7 @@ int main(int argc, char* argv[]) {
                         out << seq_name << "\t" << start << "\t" << end \
                         << "\t" << repeat_class.substr(0, atomicity) << "\t" \
                         << rlen << "\t" << repeat_class.substr(atomicity, 1) \
-                        << "\t" << rlen/atomicity << "\t" << motif << endl;
+                        << "\t" << rlen/atomicity << "\t" << motif << '\n';
                         start = -1;
                     }
                 }
@@ -172,7 +172,7 @@ int main(int argc, char* argv[]) {
         out << seq_name << "\t" << start << "\t" << end \
         << "\t" << repeat_class.substr(0, atomicity) << "\t" << rlen \
         << "\t" << repeat_class.substr(atomicity, 1) << "\t" \
-        << rlen/atomicity << "\t" << motif << endl;
+        << rlen/atomicity << "\t" << motif << '\n';
     }
 
     uint64_t end_time = duration_cast<milliseconds>(
