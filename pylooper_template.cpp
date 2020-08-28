@@ -64,7 +64,6 @@ int main(int argc, char* argv[]) {
     uint rlen;      // length of the repeat
     int repeat_check;  // bool tracking if the window sequence is a repeat
     int numseq = 0; // current sequence number
-    int const BAR_WIDTH = 60; // progress of the progress bar
     string motif, repeat_class, seq_name;
 
     // NORM is require to fetch the current window sequence
@@ -82,29 +81,11 @@ int main(int argc, char* argv[]) {
                 << "\t" << repeat_class.substr(atomicity, 1) << "\t" \
                 << rlen/atomicity << "\t" << motif << '\n';
             }
-            seq_name = line.substr(1);
+            seq_name = line.substr(1, line.find(" ")-1);
+            // cout << seq_name << endl;
             window.reset(); start = -1;
-            
-            uint64_t now = duration_cast<milliseconds>(
-                system_clock::now().time_since_epoch()
-            ).count();
-            float total_time = float(now-start_time)/1000.0;
-            float time_per_seq = total_time/float(numseq);
 
-            cout << "Time elapsed: " << total_time << " secs\n";
-            cout << "[";
-            int pos = BAR_WIDTH * progress;
-            for (int i = 0; i < BAR_WIDTH; ++i) {
-                if (i < pos) cout << "=";
-                else if (i == pos) cout << ">";
-                else cout << " ";
-            }
-            
-            cout << "] " << "" << numseq << "/" << sequences << " seqs | ";
-            cout << int(progress * 100.0) << "% | ";
-            cout << time_per_seq << " sec/seq" << "\x1b[A\r";
-
-            cout.flush();
+            utils::update_progress_bar(start_time, numseq, sequences);
             numseq++;
         }
         else {
@@ -143,7 +124,7 @@ int main(int argc, char* argv[]) {
                                 // minimum motif-size
                                 if (atomicity >= m) {
                                     start = window.count - cutoff;
-                                    motif = utils::bit2nuc(window.seq, cutoff, atomicity);
+                                    motif = utils::bit2base(window.seq, cutoff, atomicity);
                                     if (rClassMap.find(motif) != rClassMap.end()) { 
                                         repeat_class = rClassMap[motif];
                                     } else {
@@ -179,17 +160,7 @@ int main(int argc, char* argv[]) {
         system_clock::now().time_since_epoch()
     ).count();
     float total_time = float(end_time - start_time)/1000.0;
-    float time_per_seq = (float(end_time-start_time)/1000.0)/float(numseq);
-    
-    cout << "Time elapsed: " << total_time << " secs" << endl;
-    cout << "[";
-    for (int i = 0; i < BAR_WIDTH; ++i) {
-        if (i < BAR_WIDTH) cout << "=";
-        else if (i == BAR_WIDTH) cout << ">";
-        else cout << " ";
-    }
-    cout << "] " << numseq << "/" << sequences << " seqs | " << "100% | ";
-    cout << time_per_seq << " sec/seq" << endl;
+    utils::update_progress_bar(start_time, numseq, sequences);
     cout << "Total time taken: " << total_time << " seconds" << endl;
 
     ins.close(); out.close();

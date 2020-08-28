@@ -6,10 +6,12 @@ from collections import Counter, defaultdict
 import numpy as np
 from pprint import pprint
 
-from utils import kmers, get_cycles, build_cycVariations, rev_comp
+from utils import kmer_names, get_cycles, build_cycVariations, rev_comp
 
-kmer_names = ["Monomer","Dimer","Trimer","Tetramer","Pentamer","Hexamer","Heptamer","Octamer","Nonamer","Decamer","Undecamer","Dodecamer","Tridecamer","Tetradecamer","Pentadecamer","Hexadecamer","Heptadecamer","Octadecamer","Nonadecamer","Icosamer","Uncosamer","Docosamer","Tricosamer","Tetracosamer","Pentacosamer","Hexacosamer","Heptacosamer","Octacosamer","Nonacosamer","Triacontamer","Untriacontamer","Dotriacontamer","Tritriacontamer","Tetratriacontamer","Pentatriacontamer","Hexatriacontamer","Heptatriacontamer","Octatriacontamer","Nonatriacontamer","Tetracontamer","Untetracontamer","Dotetracontamer","Tritetracontamer","Tetratetracontamer","Pentatetracontamer","Hexatetracontamer","Heptatetracontamer","Octatetracontamer","Nonatetracontamer","Pentacontamer"]
+kmer_names = [kmer_names[i+1] for i in range(50)]
+
 def generate_defaultInfo(args):
+    """Generates info JSON """
     repeats_file = args.output
     input_file = args.input
 
@@ -98,8 +100,6 @@ def generate_defaultInfo(args):
             repeat_options += '<option value="%s">%s</option>' %(r, r)
         repeat_options += '</optgroup>'
 
-    print(repeat_options)
-
     total_bases = int(defaultInfo['info']['seqInfo']['Total_bases'])
     defaultInfo['info']['repInfo']['lenFrequency'] = plot_data
     defaultInfo['info']['repInfo']['numRepClasses'] = len(plot_data.keys())
@@ -133,6 +133,8 @@ def generate_defaultInfo(args):
 
 
 def writetoHTML(html_file, defaultInfo, repeat_options):
+    """Collates the scripts needed for the template html file."""
+    
     html_handle = open(html_file, 'w')
     current_dir = os.path.dirname(__file__)
 

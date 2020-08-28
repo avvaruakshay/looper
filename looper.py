@@ -3,6 +3,7 @@ import os, argparse
 from os.path import splitext
 
 from analyse import generate_defaultInfo
+from annotation import annotate_repeats
 
 """Edits the ebeta.cpp template to compile user inputs as constants"""
 
@@ -42,6 +43,15 @@ def getArgs():
     
     # Analysis options
     optional.add_argument('-a', '--analyse', action='store_true', default=False, help='Generate a summary HTML report.')
+
+    # Annotation options
+    annotation = parser.add_argument_group('Annotation arguments')
+    annotation.add_argument('-g', '--annotate', metavar='<FILE>', help='Genic annotation input file for annotation, Both GFF and GTF can be processed. Use --anno-format to specify format.')
+    annotation.add_argument('--anno-format', metavar='<STR>',default='GFF', type=str, help='Format of genic annotation file. Valid inputs: GFF, GTF. Default: GFF')
+    annotation.add_argument('--gene-key', metavar='<STR>', default='gene', type=str, help='Attribute key for geneId. The default identifier is "gene". Please check the annotation file and pick a robust gene identifier from the attribute column.')
+    annotation.add_argument('--up-promoter', metavar='<INT>', type=int, default=1000, help='Upstream distance(bp) from TSS to be considered as promoter region. Default 1000')
+    annotation.add_argument('--down-promoter', metavar='<INT>', type=int, default=1000, help='Downstream distance(bp) from TSS to be considered as promoter region. Default 1000')
+
 
     args = parser.parse_args()
 
@@ -104,6 +114,8 @@ def main():
     
     os.system('g++ ./pylooper.cpp -O3 -o pylooper')
     os.system(f'./pylooper  {args.input} {args.output}')
+
+    if args.annotate: annotate_repeats(args)
 
     if args.analyse: generate_defaultInfo(args)
 

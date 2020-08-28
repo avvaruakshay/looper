@@ -1,5 +1,5 @@
 /*
-    Utils: Auxiliary function for looper.cpp
+    Utils: Auxiliary functions for looper.cpp
     @file utils.h
     @author Akshay Avvaru
     @version 0.1 06/08/2020
@@ -9,8 +9,10 @@
 #include <unordered_map>
 #include <bitset>
 #include <fstream>
+#include <chrono>
 
 using namespace std;
+using namespace chrono;
 
 
 namespace utils {
@@ -124,7 +126,7 @@ namespace utils {
         @param l length of the DNA sequence
         @return string of the nucleotide sequence
     */ 
-    string bit2nuc(uint64_t seq, int l, int m) {
+    string bit2base(uint64_t seq, int l, int m) {
         string nuc = "";
         uint64_t fetch = 3ull << 2*(l-1);
         uint64_t c;
@@ -187,6 +189,40 @@ namespace utils {
     }
 
     /*
+        Updating the progress bar
+        @param start_time integer denoting start time of the program
+        @param numseq number of sequences processed so far
+        @param sequences total number of sequences in the fasta file
+    */
+    void update_progress_bar(uint64_t start_time, int numseq, int sequences) {
+        const int BAR_WIDTH = 50;
+        float progress = (((float) numseq) / ((float) sequences));
+        uint64_t now = duration_cast<milliseconds>(
+            system_clock::now().time_since_epoch()
+        ).count();
+        float total_time = float(now-start_time)/1000.0;
+        int time_ps = int((total_time/float(numseq))*1000);
+        float time_per_seq = float(time_ps)/1000.0;
+
+        cout << "Time elapsed: " << total_time << " secs\n";
+        cout << "[";
+        int pos = BAR_WIDTH * progress;
+        for (int i = 0; i < BAR_WIDTH; ++i) {
+            if (i < pos) cout << "=";
+            else if (i == pos) cout << ">";
+            else cout << " ";
+        }
+        
+        cout << "] " << "" << numseq << "/" << sequences << " seqs | ";
+        cout << int(progress * 100.0) << "% | ";
+        if (progress == 1) cout << time_per_seq << " sec/seq     " << endl;
+        else cout << time_per_seq << " sec/seq     " << "\x1b[A\r";
+
+        cout.flush();
+    }
+
+
+    /*
      *  Calculates the repeat class of the sequence
      *  @param seq 64-bit integer representing 2-bit string of the sequence
      *  @param l length of the DNA sequence
@@ -214,8 +250,8 @@ namespace utils {
         }
 
         if (palindrome_check == 1) { strand = "+"; }
-        string repeat_class = utils::bit2nuc(min, m, m);
-        rClassMap[utils::bit2nuc(seq, l , m)] = repeat_class + strand;
+        string repeat_class = utils::bit2base(min, m, m);
+        rClassMap[utils::bit2base(seq, l , m)] = repeat_class + strand;
 
         return repeat_class + strand;
     }

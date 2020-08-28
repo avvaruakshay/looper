@@ -4,5 +4,6 @@
         "iostream": "cpp",
         "ostream": "cpp",
         "iosfwd": "cpp"
-    }
+    },
+    "editor.rulers": [ 80, 120 ]
 }
