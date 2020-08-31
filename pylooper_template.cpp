@@ -38,10 +38,10 @@ int main(int argc, char* argv[]) {
     ifstream ins(fin); // input fasta file
     utils::input_file_error(ins.good(), fin);
     ofstream out(fout); // output file
-    out << "#File_name: " << fin << '\n';
-    out << "#Total_bases: " << gsize << '\n';
+    out << "#FileName: " << fin << '\n';
+    out << "#GenomeSize: " << gsize << '\n';
     out << "#GC: " << (float(GC) / float(gsize))*100 << '\n';
-    out << "#Total_sequences: " << sequences << '\n';
+    out << "#NumSeq: " << sequences << '\n';
     string line;
     bitSeqWindow window;    
     

@@ -32,14 +32,14 @@ def generate_defaultInfo(args):
 
     plot_data = {}
     defaultInfo = {}
-    defaultInfo['info'] = { 'seqInfo': {}, 'repInfo': {} }
+    defaultInfo['info'] = { 'SeqInfo': {}, 'RepInfo': {} }
 
     with open(repeats_file, 'r') as fh:
         for line in fh:
             line = line.strip()
             if line.startswith('#'):
                 fields = line[1:].split(': ')
-                defaultInfo['info']['seqInfo'][fields[0]] = fields[1]
+                defaultInfo['info']['SeqInfo'][fields[0]] = fields[1]
             else:
                 fields = line.split('\t')
                 fields = line.split('\t')
@@ -100,34 +100,34 @@ def generate_defaultInfo(args):
             repeat_options += '<option value="%s">%s</option>' %(r, r)
         repeat_options += '</optgroup>'
 
-    total_bases = int(defaultInfo['info']['seqInfo']['Total_bases'])
-    defaultInfo['info']['repInfo']['lenFrequency'] = plot_data
-    defaultInfo['info']['repInfo']['numRepClasses'] = len(plot_data.keys())
-    defaultInfo['info']['repInfo']['totalRepBases'] = total_repeat_bases
-    defaultInfo['info']['repInfo']['totalRepFreq'] = total_repeat_freq
-    defaultInfo['info']['repInfo']['percentGenomeCovered'] = \
+    total_bases = int(defaultInfo['info']['SeqInfo']['GenomeSize'])
+    defaultInfo['info']['RepInfo']['PlotData'] = plot_data
+    defaultInfo['info']['RepInfo']['NumRepClasses'] = len(plot_data.keys())
+    defaultInfo['info']['RepInfo']['TotalRepBases'] = total_repeat_bases
+    defaultInfo['info']['RepInfo']['TotalRepFreq'] = total_repeat_freq
+    defaultInfo['info']['RepInfo']['PercentGenomeCovered'] = \
       str(round((total_repeat_bases/total_bases)*100, 2)) + "%"
-    defaultInfo['info']['repInfo']['repDensityByFreq'] = \
+    defaultInfo['info']['RepInfo']['RepDensityByFreq'] = \
       round((total_repeat_freq/total_bases)*1000000, 2)
-    defaultInfo['info']['repInfo']['repDensityByBases'] = \
+    defaultInfo['info']['RepInfo']['RepDensityByBases'] = \
       round((total_repeat_bases/total_bases)*1000000, 2)
-    defaultInfo['info']['repInfo']['minLength'] = min_length
-    defaultInfo['info']['repInfo']['minUnits'] = min_units
-    defaultInfo['info']['repInfo']['longestRepeats'] = []
-    defaultInfo['info']['repInfo']['mostRepeatUnits'] = []
-    defaultInfo['info']['repInfo']['allRepClasses'] = repeat_classes
+    defaultInfo['info']['RepInfo']['MinLength'] = min_length
+    defaultInfo['info']['RepInfo']['MinUnits'] = min_units
+    defaultInfo['info']['RepInfo']['LongestRepeats'] = []
+    defaultInfo['info']['RepInfo']['MostRepeatUnits'] = []
+    defaultInfo['info']['RepInfo']['AllRepClasses'] = repeat_classes
     for a in longest_lengths:
         testDict = {
             'seq': a[0], 'start': a[1], 'stop': a[2], 'repClass': a[3], 
             'repLength': a[4], 'repOri': a[5], 'repUnit': a[6], 'actualRep': a[7]
         }
-        defaultInfo['info']['repInfo']['longestRepeats'].append(testDict)
+        defaultInfo['info']['RepInfo']['LongestRepeats'].append(testDict)
     for a in most_units:
         testDict = {
             'seq': a[0], 'start': a[1], 'stop': a[2], 'repClass': a[3], 
             'repLength': a[4], 'repOri': a[5], 'repUnit': a[6], 'actualRep': a[7]
         }
-        defaultInfo['info']['repInfo']['mostRepeatUnits'].append(testDict)
+        defaultInfo['info']['RepInfo']['MostRepeatUnits'].append(testDict)
     defaultInfo = 'const data =' + json.dumps(defaultInfo)
     writetoHTML(html_report, defaultInfo, repeat_options)
 

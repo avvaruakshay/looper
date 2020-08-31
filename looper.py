@@ -5,7 +5,7 @@ from os.path import splitext
 from analyse import generate_defaultInfo
 from annotation import annotate_repeats
 
-"""Edits the ebeta.cpp template to compile user inputs as constants"""
+"""Edits the looper.cpp template to compile user inputs as constants"""
 
 
 def motif_factors(m, M):
@@ -51,7 +51,6 @@ def getArgs():
     annotation.add_argument('--gene-key', metavar='<STR>', default='gene', type=str, help='Attribute key for geneId. The default identifier is "gene". Please check the annotation file and pick a robust gene identifier from the attribute column.')
     annotation.add_argument('--up-promoter', metavar='<INT>', type=int, default=1000, help='Upstream distance(bp) from TSS to be considered as promoter region. Default 1000')
     annotation.add_argument('--down-promoter', metavar='<INT>', type=int, default=1000, help='Downstream distance(bp) from TSS to be considered as promoter region. Default 1000')
-
 
     args = parser.parse_args()
 
