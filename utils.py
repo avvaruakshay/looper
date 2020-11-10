@@ -1,31 +1,45 @@
 #! /usr/bin/env python
 # pylint: disable=C0111, C0301
 
+# Future
 from __future__ import print_function, division
-import gzip
+
+# Generic/Built-in
+import gzip, sys
 from itertools import takewhile, repeat
 
-import sys
-
-kmer_names = { 
-    1: 'Monomer', 2: 'Dimer', 3: 'Trimer', 4: 'Tetramer', 5: 'Pentamer',
-    6: 'Hexamer', 7: 'Heptamer', 8: 'Octamer', 9: 'Nonamer', 10: 'Decamer',
-    11: 'Undecamer', 12: 'Dodecamer', 13: 'Tridecamer', 14: 'Tetradecamer',
-    15: 'Pentadecamer', 16: 'Hexadecamer', 17: 'Heptadecamer', 18: 'Octadecamer',
-    19: 'Nonadecamer', 20: 'Icosamer', 21: 'Uncosamer', 22: 'Docosamer',
-    23: 'Tricosamer', 24: 'Tetracosamer', 25: 'Pentacosamer', 26: 'Hexacosamer',
-    27: 'Heptacosamer', 28: 'Octacosamer', 29: 'Nonacosamer', 30: 'Triacontamer',
-    31: 'Untriacontamer', 32: 'Dotriacontamer', 33: 'Tritriacontamer',
-    34: 'Tetratriacontamer', 35: 'Pentatriacontamer', 36: 'Hexatriacontamer',
-    37: 'Heptatriacontamer', 38: 'Octatriacontamer', 39: 'Nonatriacontamer',
-    40: 'Tetracontamer', 41: 'Untetracontamer', 42: 'Dotetracontamer',
-    43: 'Tritetracontamer', 44: 'Tetratetracontamer', 45: 'Pentatetracontamer',
-    46: 'Hexatetracontamer', 47: 'Heptatetracontamer', 48: 'Octatetracontamer', 
-    49: 'Nonatetracontamer', 50: 'Pentacontamer',
-}
+# list storing kmer names for each motif size in sorted order
+kmer_names = [
+    'Monomer', 'Dimer', 'Trimer', 'Tetramer', 'Pentamer',
+    'Hexamer', 'Heptamer', 'Octamer', 'Nonamer', 'Decamer',
+    'Undecamer', 'Dodecamer', 'Tridecamer', 'Tetradecamer',
+    'Pentadecamer', 'Hexadecamer', 'Heptadecamer', 'Octadecamer',
+    'Nonadecamer', 'Icosamer', 'Uncosamer', 'Docosamer',
+    'Tricosamer', 'Tetracosamer', 'Pentacosamer', 'Hexacosamer',
+    'Heptacosamer', 'Octacosamer', 'Nonacosamer', 'Triacontamer',
+    'Untriacontamer', 'Dotriacontamer', 'Tritriacontamer',
+    'Tetratriacontamer', 'Pentatriacontamer', 'Hexatriacontamer',
+    'Heptatriacontamer', 'Octatriacontamer', 'Nonatriacontamer',
+    'Tetracontamer', 'Untetracontamer', 'Dotetracontamer',
+    'Tritetracontamer', 'Tetratetracontamer', 'Pentatetracontamer',
+    'Hexatetracontamer', 'Heptatetracontamer', 'Octatetracontamer', 
+    'Nonatetracontamer', 'Pentacontamer',
+]
 
 
 def rawcharCount(filename, char):
+    """
+    Counts the occurrences of a character in the file.
+
+    Parameters
+    ----------
+    filename : str, input file name
+    char : str, character to be counted
+
+    Returns
+    -------
+    INT, count of the character
+    """"
     if filename.endswith('gz'):
         f = gzip.open(filename, 'rb')
     else:
@@ -34,23 +48,66 @@ def rawcharCount(filename, char):
     return sum( buf.count(char.encode('ASCII')) for buf in bufgen if buf )
 
 
-def get_cycles(string):
+def get_cycles(motif):
+    """
+    Generates cyclical variations of a motif
+    
+    Parameters
+    ----------
+    motif : str, nucleotide motif
+
+    Returns
+    -------
+    LIST, List of cyclical variations of the motif sorted in alphabetical order.
+    """
     cycles = set()
-    for i in range(len(string)):
-        cycles.add(string[i:] + string[:i])
+    for i in range(len(motif)):
+        cycles.add(motif[i:] + motif[:i])
     cycles = sorted(list(cycles))
     return cycles
 
 
-def build_cycVariations(string):
-    cycles = get_cycles(string)
-    rev_cycles = get_cycles(rev_comp(string))
+def build_cycVariations(motif):
+    """
+    Description
+    -----------
+    Builds the set of cyclical variations of the motif and cyclical variations
+    of the reverse complement of the motif.
+    
+    Parameters
+    ----------
+    motif : str, nucleotide motif
+
+    Returns
+    -------
+    LIST,  
+    Cyclical variations of itself and the reverse complement.
+    The list has the cyclical variations of the motif sorted in 
+    alphabetical order followed by alphabetically sorted cyclical 
+    variations of reverse complement.
+    """
+    cycles = get_cycles(motif)
+    rev_cycles = get_cycles(rev_comp(motif))
     for r in rev_cycles:
         if r not in cycles: cycles.append(r)
     return cycles
 
 
 def getGC(basesCounter):
+    """
+    Description
+    -----------
+    Calculate GC percentage of the genome.
+
+    Parameters
+    ----------
+    baseCounter : collections Counter object which has counts of each of the 
+    nucleotide.
+
+    Returns
+    -------
+    FLOAT, GC percentage value
+    """
     totalBases = sum(basesCounter.values())
     try:
         GC = (float(basesCounter['G'] + basesCounter['C'])/(totalBases-basesCounter['N']))*100
@@ -59,11 +116,23 @@ def getGC(basesCounter):
     return GC
 
 
-def rev_comp(string):
-    """Outputs reverse complement of a nucleotide sequence"""
+def rev_comp(motif):
+    """
+    Description
+    -----------
+    Outputs reverse complement of a nucleotide sequence
+
+    Parameters
+    ----------
+    motif : str, input nucleotide sequence
+
+    Returns
+    -------
+    STR, reverse complement sequence    
+    """
     if sys.version_info.major == 2:
-        import string as st
-        complement = string.translate(st.maketrans('ACGT', 'TGCA'))
+        import motif as st
+        complement = motif.translate(st.maketrans('ACGT', 'TGCA'))
     else:
-        complement = string.translate(str.maketrans('ACGT', 'TGCA'))
+        complement = motif.translate(str.maketrans('ACGT', 'TGCA'))
     return complement[::-1]

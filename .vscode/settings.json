@@ -3,7 +3,8 @@
         "chrono": "cpp",
         "iostream": "cpp",
         "ostream": "cpp",
-        "iosfwd": "cpp"
+        "iosfwd": "cpp",
+        "bitset": "cpp"
     },
     "editor.rulers": [ 80, 120 ]
 }

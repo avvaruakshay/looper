@@ -5,11 +5,11 @@
     @version 0.1 06/08/2020
 */
 #include <cstdint>
-#include <iostream>
 #include <unordered_map>
 #include <bitset>
 #include <fstream>
 #include <chrono>
+#include <iomanip>
 
 using namespace std;
 using namespace chrono;
@@ -22,7 +22,7 @@ namespace utils {
      *  @param M Maximum motif size
      *  @param cutoff Cutoff length of repeat sequence
     */
-    void length_cutoff_error(uint M, uint cutoff) {
+    void length_cutoff_error(unsigned int M, unsigned int cutoff) {
         try { if (cutoff < 2*M) { throw 1; } }
         catch (int err) {
             cout << "Looper:" << endl;
@@ -53,7 +53,7 @@ namespace utils {
      *  @param input Bool if file is good
      *  @param file_name Name of the input file
     */
-    void motif_range_error(uint m, uint M) {
+    void motif_range_error(unsigned int m, unsigned int M) {
         try { if (m > M) { throw 1; } }
         catch (int err) {
             cout << "Looper:" << endl;
@@ -87,7 +87,7 @@ namespace utils {
         Parse command line arguments.
     */
     void parse_arguments(int argc, char* argv[], string &fin, string &fout,\
-                        uint &m, uint &M, uint &cutoff) {
+                        unsigned int &m, unsigned int &M, unsigned int &cutoff) {
         for (int i=1; i < argc; ++i) {
             string arg = argv[i];
             if (arg == "-h") { utils::print_help(); exit (EXIT_SUCCESS);}
@@ -126,10 +126,10 @@ namespace utils {
         @param l length of the DNA sequence
         @return string of the nucleotide sequence
     */ 
-    string bit2base(uint64_t seq, int l, int m) {
+    string bit2base(unsigned long long int seq, int l, int m) {
         string nuc = "";
-        uint64_t fetch = 3ull << 2*(l-1);
-        uint64_t c;
+        unsigned long long int fetch = 3ull << 2*(l-1);
+        unsigned long long int c;
         int shift = 2*(l-1) ;
         for (int i=0; i<m; ++i) {
             c = (seq & fetch) >> shift;
@@ -152,9 +152,9 @@ namespace utils {
      *  @param l length of the DNA sequence
      *  @return a 64-bit integer representing the reverse complement
     */
-    uint64_t bit_reverse_complement(uint64_t seq, int l) {
-        uint64_t rc = 0ull;
-        uint64_t const NORM = ~(0ull) >> 2*(32-l);
+    unsigned long long int bit_reverse_complement(unsigned long long int seq, int l) {
+        unsigned long long int rc = 0ull;
+        unsigned long long int const NORM = ~(0ull) >> 2*(32-l);
         bitset<64> norm (NORM);
         seq = ~(seq); seq = seq & NORM;
         for (int i=0; i<l; i++) { 
@@ -169,7 +169,7 @@ namespace utils {
      *  @param filename name of the fasta file
      *  @return number of sequences in the file (int)
     */
-    void count_seq(string filename, int &sequences, uint64_t &gsize, uint64_t &GC) {
+    void count_seq(string filename, int &sequences, unsigned long long int &gsize, unsigned long long int &GC) {
         ifstream file(filename);
         string fline;
         while (getline(file, fline)) {
@@ -194,17 +194,21 @@ namespace utils {
         @param numseq number of sequences processed so far
         @param sequences total number of sequences in the fasta file
     */
-    void update_progress_bar(uint64_t start_time, int numseq, int sequences) {
+    void update_progress_bar(unsigned long long int start_time, int numseq, int sequences) {
         const int BAR_WIDTH = 50;
         float progress = (((float) numseq) / ((float) sequences));
-        uint64_t now = duration_cast<milliseconds>(
+        unsigned long long int now = duration_cast<milliseconds>(
             system_clock::now().time_since_epoch()
         ).count();
-        float total_time = float(now-start_time)/1000.0;
+        float total_time = now-start_time;
         int time_ps = int((total_time/float(numseq))*1000);
         float time_per_seq = float(time_ps)/1000.0;
-
-        cout << "Time elapsed: " << total_time << " secs\n";
+        int total_secs = int(total_time);
+        int h = total_secs/3600000;
+        int m = (total_secs%3600000)/60000;
+        int s = ((total_secs%3600000)%60000)/1000;
+        int ms = ((total_secs%3600000)%60000)%1000;
+        cout << setprecision(2) << h << ":" << m << ":" << s << ":" << ms << " ";
         cout << "[";
         int pos = BAR_WIDTH * progress;
         for (int i = 0; i < BAR_WIDTH; ++i) {
@@ -216,7 +220,7 @@ namespace utils {
         cout << "] " << "" << numseq << "/" << sequences << " seqs | ";
         cout << int(progress * 100.0) << "% | ";
         if (progress == 1) cout << time_per_seq << " sec/seq     " << endl;
-        else cout << time_per_seq << " sec/seq" << "\33[K" << "\x1b[A\r";
+        else cout << time_per_seq << " sec/seq" << "\r";
 
         cout.flush();
     }
@@ -230,14 +234,14 @@ namespace utils {
      *  @return string of repeat class motif with the strand orientation;
      *      example: "AGG+"
     */
-    string get_repeat_class(uint64_t seq, int l, int m, unordered_map<string, string> &rClassMap) {
+    string get_repeat_class(unsigned long long int seq, int l, int m, unordered_map<string, string> &rClassMap) {
         string strand;
         // Throw error if length cutoff is smaller than 
         // twice the length of largest motif
-        uint64_t expand = seq >> 2*(l-(2*m)); 
-        uint64_t const NORM = ~(0ull) >> 2*(32-m);
-        uint64_t min = ~(0ull);
-        uint64_t cyc; uint64_t cyc_rc;
+        unsigned long long int expand = seq >> 2*(l-(2*m)); 
+        unsigned long long int const NORM = ~(0ull) >> 2*(32-m);
+        unsigned long long int min = ~(0ull);
+        unsigned long long int cyc; unsigned long long int cyc_rc;
         int palindrome_check = 0;
 
         for (int i=0; i<m; i++) {
@@ -262,8 +266,8 @@ namespace utils {
      *  @param M maximum motif size
      *  @return list of motif sizes to perform non-redundant checks
     */
-    vector<uint> get_motif_sizes(uint m, uint M) {
-        vector<uint> a = {M};
+    vector<unsigned int> get_motif_sizes(unsigned int m, unsigned int M) {
+        vector<unsigned int> a = {M};
         int vsize = 0;
         for (int i=M-1; i >= m; --i) {
             bool check = false;
@@ -282,11 +286,11 @@ namespace utils {
      *  @param m length of the motif size
      *  @return atomicity of the motif
     */
-    uint check_atomicity(uint64_t seq, uint l, uint m) {
+    static inline unsigned int check_atomicity(unsigned long long int seq, unsigned int l, unsigned int m) {
         seq = seq >> (2*(l-m));
         for (int i=1; i<m; i++) {
             if (m%i == 0) {
-                uint64_t D = 0ull; uint d = m/i;
+                unsigned long long int D = 0ull; unsigned int d = m/i;
                 for (int j=0; j<d; j++) { D = D << 2*i; D += 1; }
                 if (seq%D == 0) { return i; }
             }

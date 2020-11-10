@@ -1,14 +1,49 @@
 #!/usr/bin/env python
-import os, argparse
+
+"""
+@author: Avvaru Akshay
+@filename: looper.py
+
+Looper python script.
+
+This code calculates and inserts the desired parameters in C++ code as constants.
+Thus the C++ code doesn't lag on calculating the parameters during the runtime
+and also optimises the divisions as the divisors are known at the compile time.
+Compiles the generated c++ code and runs repeat indentification using the
+compiled c++ code on input sequence file.
+
+"""
+
+# Future
+from __future__ import print_function, division
+
+# Generic/Built-in
+import os, argparse, sys
 from os.path import splitext
 
+# Owned
 from analyse import generate_defaultInfo
 from annotation import annotate_repeats
 
-"""Edits the looper.cpp template to compile user inputs as constants"""
+if sys.version_info[0] == 2:
+    pass
 
 
 def motif_factors(m, M):
+    """
+    Generates the set of non redundant motif sizes to be checked for division
+    rule.
+
+    Parameters
+    ----------
+    m : <int> minimum motif size
+
+    M : <int> maximum motif size
+
+    Returns
+    -------
+    factors : <list> sorted(descending) list of non-redundant motifs.
+    """
     factors = []
     for i in range(M, m-1, -1):
         check = 0
@@ -34,7 +69,7 @@ def getArgs():
     #Basic options
     optional.add_argument('-o', '--output', metavar='<FILE>', help='Output file name. Default: Input file name + _perf.tsv')
     # optional.add_argument('--format', metavar='<STR>', default='fasta', help='Input file format. Default: fasta, Permissible: fasta, fastq')
-    # optional.add_argument('--version', action='version', version='looper ' + __version__)
+    optional.add_argument('-v-', '--version', action='version', version='looper ' + __version__)
         
     #Selections options based on motif size and seq lengths
     optional.add_argument('-m', '--min-motif-size', type=int, metavar='<INT>', default=1, help='Minimum size of a repeat motif in bp (Not allowed with -rep)')
@@ -65,7 +100,6 @@ def getArgs():
 def main():
     """Main function of looper"""
 
-
     args = getArgs()
 
     m = args.min_motif_size
@@ -87,11 +121,11 @@ def main():
         divisor.append(int(D, 2))
         rem_shift.append( int(2*(cutoff - (cutoff % motif_checks[i]))) )
 
-    div_string = f'uint64_t divisor[{N}] = ' + '{'
+    div_string = 'uint64_t divisor[{N}] = '.format(N=N) + '{'
     for a in divisor: div_string += str(a) + ','
     div_string = div_string[:-1] + '}'
 
-    rem_shift_string = f'uint rem_shift[{N}] = ' + '{'
+    rem_shift_string = 'uint rem_shift[{N}] = '.format(N=N) + '{'
     for a in rem_shift: rem_shift_string += str(a) + ','
     rem_shift_string = rem_shift_string[:-1] + '}'
 
@@ -101,18 +135,21 @@ def main():
             line = line.rstrip()
             if '$' in line:
                 prefix = line[:line.find('$')]
-                line = f'{prefix}uint cutoff = {cutoff};\
-                    \n{prefix}uint m = {m};\
-                    \n{prefix}uint M = {M};\
-                    \n{prefix}uint motif_checks[{N}] = {motif_checks_string};\
-                    \n{prefix}uint N = {N};\
-                    \n{prefix}{div_string};\
-                    \n{prefix}{rem_shift_string};'
+                line = '{prefix}uint cutoff = {cutoff};'.format(prefix=prefix, cutoff=cutoff)
+                line += '\n{prefix}uint m = {m};'.format(prefix=prefix, m=m)
+                line += '\n{prefix}uint M = {M};'.format(prefix=prefix, M=M)
+                line += '\n{prefix}uint motif_checks[{N}] = {motif_checks_string};'.format(prefix=prefix, N=N, motif_checks_string=motif_checks_string)
+                line += '\n{prefix}uint N = {N};'.format(prefix=prefix, N=N)
+                line += '\n{prefix}{div_string};'.format(prefix=prefix, div_string=div_string)
+                line += '\n{prefix}{rem_shift_string};'.format(prefix=prefix, rem_shift_string=rem_shift_string)
             print(line, file=script)
     script.close()
-    
-    os.system('g++ ./pylooper.cpp -O3 -o pylooper')
-    os.system(f'./pylooper  {args.input} {args.output}')
+    status = os.system('g++ ./pylooper.cpp -O3 -o pylooper')
+    if sys.platform.startswith('linux') and status != 0:
+        print('\n\nError compiling the cpp auxiliary code. Please check for proper\
+               installation of g++. ')
+        sys.exit()
+    os.system('./pylooper  {input} {output}'.format(input=args.input, output=args.output))
 
     if args.annotate: annotate_repeats(args)
 

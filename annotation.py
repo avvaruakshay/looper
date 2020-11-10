@@ -1,17 +1,25 @@
 #!usr/bin/python
+"""
+    @author : Akshay Avvaru
+    @file : annotation.py
+"""
+
+
+# Future
 from __future__ import print_function, division
+
+# Generic/Built-in
 from operator import itemgetter
 from collections import defaultdict
 from tqdm import tqdm
-import sys, gzip
+import sys, gzip, argparse
 from os.path import splitext
-from pprint import pprint
 
+# Owned
 from utils import rawcharCount
 
 
 """
-
     CAUTION: Works currently for only sorted bed files.
 
     Preferential order of assigning annotation:
@@ -28,34 +36,77 @@ from utils import rawcharCount
     1 processed_transcript                transcript  11869 14409 . + . gene_id "ENSG00000223972"; transcript_id "ENST00000456328"; gene_name "DDX11L1"; gene_sourc e "havana"; gene_biotype "transcribed_unprocessed_pseudogene"; transcript_name "DDX11L1-002"; transcript_source "havana";
 
     # Sample GFF
-    X	Ensembl	Repeat	2419108	2419128	42	.	.	hid=trf; hstart=1; hend=21
-    X	Ensembl	Repeat	2419108	2419410	2502	-	.	hid=AluSx; hstart=1; hend=303
-    X	Ensembl	Repeat	2419108	2419128	0	.	.	hid=dust; hstart=2419108; hend=2419128
+    X	Ensembl	Region	2419108	2419128	42	.	.	hid=trf; hstart=1; hend=21
+    X	Ensembl	Region	2419108	2419410	2502	-	.	hid=AluSx; hstart=1; hend=303
+    X	Ensembl Region	2419108	2419128	0	.	.	hid=dust; hstart=2419108; hend=2419128
 """
 
-def select_anno(List):
-    """Function to assign the hierarchically right choice of annotation"""
-    if 'Exon' in List:
+def get_annoargs():
+    parser = argparse.ArgumentParser()
+    parser._action_groups.pop()
+
+    required = parser.add_argument_group('Required arguments')
+    required.add_argument('-i', '--input', required=True, metavar='<FILE>', help='Genic annotation input file for annotation, Both GFF and GTF can be processed. Use --anno-format to specify format.')
+    required.add_argument('-g', '--annotate', required=True, metavar='<FILE>', help='Input bedfile to be annotated.')
+    required.add_argument('-o', '--output', metavar='<FILE>', help='Output file name.')
+
+    # Annotation options
+    annotation = parser.add_argument_group('Annotation arguments')
+    annotation.add_argument('--anno-format', metavar='<STR>',default='GFF', type=str, help='Format of genic annotation file. Valid inputs: GFF, GTF. Default: GFF')
+    annotation.add_argument('--gene-key', metavar='<STR>', default='gene', type=str, help='Attribute key for geneId. The default identifier is "gene". Please check the annotation file and pick a robust gene identifier from the attribute column.')
+    annotation.add_argument('--up-promoter', metavar='<INT>', type=int, default=1000, help='Upstream distance(bp) from TSS to be considered as promoter region. Default 1000')
+    annotation.add_argument('--down-promoter', metavar='<INT>', type=int, default=1000, help='Downstream distance(bp) from TSS to be considered as promoter region. Default 1000')
+
+    args = parser.parse_args()
+    return args
+
+def select_anno(annotations):
+    """
+    Description
+    -----------
+    Function to assign the hierarchically right choice of annotation
+
+    Parameters
+    ----------
+    annotations : list, List of annotations to choose the preferred one
+
+    Returns
+    -------
+    STR, The preferred annotation    
+    """
+    if 'Exon' in annotations:
         return 'Exon'
-    elif 'Intron' in List:
+    elif 'Intron' in annotations:
         return 'Intron'
-    elif 'Genic' in List:
+    elif 'Genic' in annotations:
         return 'Genic'
-    elif 'Intergenic' in List:
+    elif 'Intergenic' in annotations:
         return 'Intergenic'
 
 
 def promoter(check):
-    if check == 1:
-        return 'Promoter'
-    else:
-        return 'Non-Promoter'
+    if check == 1: return 'Promoter'
+    else: return 'Non-Promoter'
 
 
 # Need to be updated for better parsing of the attributes
 def process_attrs(attribute, annotype):
-    """Processes the attribute field to build a dictionary with detailed
-     profiling of the feature"""
+    """
+    Description
+    -----------
+    Processes the attribute field of a feature and builds a dictionary with 
+    key value pairs of all the attributes.
+
+    Parameters
+    ----------
+    attribute : str, The attribute field of a feature in the GFF/GTF file
+
+    annotype : str, Type of the genomic feature file. Either GFF or GTF
+
+    Returns
+    -------
+    DICT, dictionary with key value pairs of all the attributes
+    """
     
     attr_obj = {}
     attributes = attribute.split(";")
@@ -70,22 +121,35 @@ def process_attrs(attribute, annotype):
 def process_annofile(annofile, annotype, gene_id):
 
     """
-        Processes the input annotation file and builds an object inclusive of 
-        all the available genic features.
-        Order of columns for a typical GFF or GTF file:
-        - seqname  source  feature start   end score   strand  frame   attribute
+    Description
+    -----------
+    Processes the input annotation file and builds an object inclusive of 
+    all the available genic features.
+    Order of columns for a typical GFF or GTF file:
+    - seqname  source  feature start   end score   strand  frame   attribute
 
-        The output is an object is a constituent of two dictionaries:
-            - An object for all the gene features. (key: chromosome_name, 
-              value: list of features in the chromosome).
-            - An object for all the sub gene (exon, cds, etc.) features. 
-                key: chromosome_name,
-                value:
-                    key: parent_geneid, 
-                    value: list of features in the chromosome
-       
-        The features for each chromosome are sorted based on their starts 
-        for easier downstream processing.
+    Parameters
+    ----------
+    annofile : str, file name for the genomic feature file
+
+    annotype : str, Type of the genomic feature file. Either GFF or GTF
+    
+    gene_id : str, Attribute key whose value should be used as identifier for 
+                   gene name.
+
+    Returns
+    -------
+    The output is an object is a constituent of two dictionaries:
+    - An object for all the gene features. (key: chromosome_name, 
+        value: list of features in the chromosome).
+    - An object for all the sub gene (exon, cds, etc.) features. 
+        key: chromosome_name,
+        value:
+            key: parent_geneid, 
+            value: list of features in the chromosome
+    
+    The features for each chromosome are sorted based on their starts 
+    for easier downstream processing.
     """
 
     gene_obj = defaultdict(list)
@@ -137,14 +201,23 @@ def process_annofile(annofile, annotype, gene_id):
 
 def annotate_repeats(args):
     """
-        Main function which iterates over the given input bedfile(perf_output)
-        Annotates each repeat location based on the close genic features.
+    Description
+    -----------
+    Function which iterates over the given input bedfile(perf_output)
+    Annotates each repeat location based on the close genic features.
 
-        Simple outline:
-            - Works with the assumption that perf_output is sorted based on co-ordinates.
-            - For each repeat 
-                * The features on its chromosome are retrived
-                *
+    Simple outline:
+    - Works with the assumption that bedfile(perf_output) is sorted based on 
+        co-ordinates.
+    - For each repeat 
+        * The features on its chromosome are retrived
+        * Based on the location of the region an index is selected from which
+          the comparisons have to be done for finding the possible annotation
+          w.r.t the closest gene.
+
+    Parameters
+    ----------
+    args : argparse args object
     """
 
     rep_file = args.output
@@ -159,13 +232,12 @@ def annotate_repeats(args):
     features = process_annofile(anno_file, annotype, gene_id)
     gene_obj = features['gene']
     subgene_obj = features['subgene']
-    # pprint(features)
 
     print('', end='\n')
     print('Generating annotations for identified repeats..')
     print('', end='\n')
-    total_regions = rawcharCount(rep_file, '\n')
     # Counting the number of lines in bed -------------------------------------
+    total_regions = rawcharCount(rep_file, '\n')
     with open(rep_file) as bed:
         prev_seqname = "Initialise" # Initialise for checking the prev_seqname
         min_start_index = 0
@@ -299,8 +371,11 @@ def annotate_repeats(args):
                     Annotations = {'Genic': [], 'Exon': [], 'Intron': []}
                     print(line + '\t' + '\t'.join(['-']*7), file = output_file)
                 for anno in list(Annotations.keys()):
+                    # Deleting annotation keys for which the repeat was not
+                    # annotated in such a location
                     if len(Annotations[anno]) == 0: del Annotations[anno]
                 for anno in Annotations:
+                    # Finding the closest annotation
                     feature_leastdist = float('inf')
                     closest_entry = ""
                     for entry in Annotations[anno]:
@@ -319,8 +394,5 @@ def annotate_repeats(args):
     output_file.close()
 
 if __name__ == "__main__":
-    anno_file = sys.argv[1]
-    anno_format = sys.argv[2]
-    gene_id = 'gene' if (anno_format == 'GFF') else 'gene_id'
-    annotation_obj = process_annofile(anno_file, anno_format, gene_id)
-    pprint(annotation_obj['subgene'])
+    args = get_annoargs()
+    annotate_repeats(args)

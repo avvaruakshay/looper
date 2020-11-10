@@ -14,7 +14,7 @@
 #include <chrono>
 #include <assert.h>
 
-#include "utils.h"
+#include "utils_win.h"
 
 using namespace std;
 using namespace std::chrono;
@@ -25,8 +25,8 @@ unordered_map<string, string> rClassMap;
 // Data structure to track 2-bit sequence of scanned window in the genome
 // and it's location
 struct bitSeqWindow {
-    uint64_t seq = 0, count = 0;
-    uint cutoff = 0;
+    unsigned long long int seq = 0, count = 0;
+    unsigned int cutoff = 0;
     bitSeqWindow() { reset(); }
     void reset() { seq = count = cutoff = 0;}
 };
@@ -37,14 +37,14 @@ int main(int argc, char* argv[]) {
     ios_base::sync_with_stdio(false);
 
     string fin, fout;
-    uint m = 0, M = 0, cutoff = 0;
+    unsigned int m = 0, M = 0, cutoff = 0;
     if (argc == 1) { utils::print_help(); exit (EXIT_FAILURE); }
     else if (argc > 1) { 
         utils::parse_arguments(argc, argv, fin, fout, m, M, cutoff);
         utils::length_cutoff_error(M, cutoff);
     }
 
-    uint64_t gsize = 0, GC = 0;
+    unsigned long long int gsize = 0, GC = 0;
     int sequences = 0;
     utils::count_seq(fin, sequences, gsize, GC); // total number of sequences
     ifstream ins(fin); // input fasta file
@@ -58,37 +58,35 @@ int main(int argc, char* argv[]) {
     cout << "Min-motif: " << m << "\t Max-motif: " << M;
     cout << "\t Length-cutoff: " << cutoff <<  endl << endl;
 
-    uint64_t start_time = duration_cast<milliseconds>(
+    unsigned long long int start_time = duration_cast<milliseconds>(
         system_clock::now().time_since_epoch()
     ).count();
 
     // integer tracking the start of the repeat
     // -1 indicates no repeat is found 
     int start = -1; 
-    uint atomicity;           // atomicity of the repeat
-    uint end;                 // end of the repeat    
-    uint rlen;                // length of the repeat
-    int repeat_check;         // track if the window sequence is a repeat
-    int numseq          = 0;  // current sequence number
+    unsigned int atomicity; // atomicity of the repeat
+    unsigned int end;       // end of the repeat    
+    unsigned int rlen;      // length of the repeat
+    int repeat_check;  // bool tracking if the window sequence is a repeat
+    int numseq = 0; // current sequence number
     int const BAR_WIDTH = 60; // progress of the progress bar
     string motif, repeat_class, seq_name;
 
     // NORM is require to fetch the current window sequence
-    uint64_t const NORM = ~(0ull) >> 2*(32-cutoff);
-
+    unsigned long long int const NORM = ~(0ull) >> 2*(32-cutoff);
     // non-redundant list of motifs used for checks
-    vector<uint> motif_checks = utils::get_motif_sizes(m, M);
-
-    const uint N = motif_checks.size();
-    uint64_t divisor[N];    // list of divisors
-    uint rem_shift[N];      // list of remainder sizes
+    vector<unsigned int> motif_checks = utils::get_motif_sizes(m, M);
+    const unsigned int N = motif_checks.size();
+    unsigned long long int divisor[N]; // list of divisors
+    unsigned int rem_shift[N]; // list of remainder sizes
     for (int i=0; i<N; i++) {
-        uint d = cutoff / motif_checks[i];
-        uint r = cutoff % motif_checks[i];
-        uint64_t D = 0ull;
+        unsigned int d = cutoff / motif_checks[i];
+        unsigned int r = cutoff % motif_checks[i];
+        unsigned long long int D = 0ull;
         for (int j=0; j<d; j++) { D = D << (2*motif_checks[i]); D += 1; }
         D = D << (2*r);
-        divisor[i]   = D;
+        divisor[i] = D;
         rem_shift[i] = 2*(cutoff - r);
     }
 
@@ -129,8 +127,8 @@ int main(int argc, char* argv[]) {
                         break;
                     default: continue;
                 }
-                window.count    += 1;
-                window.cutoff   += 1;
+                window.count += 1;
+                window.cutoff += 1;
                 window.seq &= NORM;
                 gsize += 1;
 
@@ -177,7 +175,7 @@ int main(int argc, char* argv[]) {
         << rlen/atomicity << "\t" << motif << '\n';
     }
 
-    uint64_t end_time = duration_cast<milliseconds>(
+    unsigned long long int end_time = duration_cast<milliseconds>(
         system_clock::now().time_since_epoch()
     ).count();
     float total_time = float(end_time - start_time)/1000.0;
@@ -187,7 +185,7 @@ int main(int argc, char* argv[]) {
     out.clear(); out.seekp(0);
     out << "#FileName: " << fin << endl;
     out << "#GenomeSize: " << gsize << endl;
-    out << "#GC%: " << (float(GC) / float(gsize))*100 << endl;
+    out << "#GC: " << (float(GC) / float(gsize))*100 << endl;
     out << "#NumSeq: " << sequences;
     ins.close(); out.close();
     return EXIT_SUCCESS;

@@ -1,14 +1,16 @@
 #! /usr/bin/env python
 
+# Future
 from __future__ import print_function, division
+
+# Generic/Built-in
 import sys, os, json
 from collections import Counter, defaultdict
 import numpy as np
 from pprint import pprint
 
+# Owned
 from utils import kmer_names, get_cycles, build_cycVariations, rev_comp
-
-kmer_names = [kmer_names[i+1] for i in range(50)]
 
 def generate_defaultInfo(args):
     """Generates info JSON """
@@ -146,7 +148,7 @@ def writetoHTML(html_file, defaultInfo, repeat_options):
 
     jquery_js = open("%s/lib/src/jquery-3.5.0.min.js" %(current_dir), "r").read()
     multiselect_js = open('%s/lib/src/jquery.multi-select.min.js' %(current_dir), 'r').read()
-    echarts_js = open('%s/lib/src/echarts.min.js' %(current_dir), 'r').read()
+    echarts_js = open('%s/lib/src/echarts_cp1252.min.js' %(current_dir), 'r').read()
     main_js = open('%s/lib/src/main.js' %(current_dir), 'r').read()
     tables_js = open('%s/lib/src/tables.js' %(current_dir), 'r').read()
 
