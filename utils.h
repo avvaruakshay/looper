@@ -17,6 +17,14 @@ using namespace chrono;
 
 namespace utils {
 
+    /* Data structure tracking the window sequence */
+    struct bitSeqWindow {
+        uint64_t seq = 0, count = 0;
+        uint cutoff = 0;
+        bitSeqWindow() { reset(); }
+        void reset() { seq = count = cutoff = 0;}
+    };
+
     /*
      *  Check for length cutoff
      *  @param M Maximum motif size
@@ -119,14 +127,33 @@ namespace utils {
         if (cutoff == 0) { cutoff = 2*M; }
     }
 
+    /*
+     *  Filters redundant motif sizes for division rule checks
+     *  @param m minimum motif size
+     *  @param M maximum motif size
+     *  @return list of motif sizes to perform non-redundant checks
+    */
+    vector<uint> get_motif_sizes(uint m, uint M) {
+        vector<uint> a = {M};
+        int vsize = 0;
+        for (int i=M-1; i >= m; --i) {
+            bool check = false;
+            for (int j=0; j < vsize; j++) {
+                if (a[j] % i == 0) { check = true; break; }
+            }
+            if (!check) { a.push_back(i); vsize += 1;}
+        }
+        return a;
+    }
+
 
     /*
-        Converts a 2-bit string to nucleotide sequence
-        @param seq 64-bit integer representing 2-bit string of the sequence
-        @param l length of the DNA sequence
-        @return string of the nucleotide sequence
+     *  Converts a 2-bit string to nucleotide sequence
+     *  @param seq 64-bit integer representing 2-bit string of the sequence
+     *  @param l length of the DNA sequence
+     *  @return string of the nucleotide sequence
     */ 
-    string bit2base(uint64_t seq, int l, int m) {
+    inline string bit2base(uint64_t seq, int l, int m) {
         string nuc = "";
         uint64_t fetch = 3ull << 2*(l-1);
         uint64_t c;
@@ -152,7 +179,7 @@ namespace utils {
      *  @param l length of the DNA sequence
      *  @return a 64-bit integer representing the reverse complement
     */
-    uint64_t bit_reverse_complement(uint64_t seq, int l) {
+    inline uint64_t bit_reverse_complement(uint64_t seq, int l) {
         uint64_t rc = 0ull;
         uint64_t const NORM = ~(0ull) >> 2*(32-l);
         bitset<64> norm (NORM);
@@ -163,6 +190,39 @@ namespace utils {
         return rc;
     }
 
+    /*
+     *  Calculates the repeat class of the sequence
+     *  @param seq 64-bit integer representing 2-bit string of the sequence
+     *  @param l length of the DNA sequence
+     *  @param m length of the motif size
+     *  @return string of repeat class motif with the strand orientation;
+     *      example: "AGG+"
+    */
+    inline string get_repeat_class(uint64_t seq, int l, int m, unordered_map<string, string> &rClassMap) {
+        string strand;
+        // Throw error if length cutoff is smaller than 
+        // twice the length of largest motif
+        uint64_t expand = seq >> 2*(l-(2*m)); 
+        uint64_t const NORM = ~(0ull) >> 2*(32-m);
+        uint64_t min = ~(0ull);
+        uint64_t cyc; uint64_t cyc_rc;
+        int palindrome_check = 0;
+
+        for (int i=0; i<m; i++) {
+            cyc = expand & NORM;
+            if (cyc < min) { min = cyc; strand = "+";}
+            cyc_rc = utils::bit_reverse_complement(cyc, m);
+            if (cyc_rc < min) { min = cyc_rc; strand = "-";}
+            if (cyc == cyc_rc) { palindrome_check = 1;}
+            expand = expand >> 2;
+        }
+
+        if (palindrome_check == 1) { strand = "+"; }
+        string repeat_class = utils::bit2base(min, m, m);
+        rClassMap[utils::bit2base(seq, l , m)] = repeat_class + strand;
+
+        return repeat_class + strand;
+    }
 
     /*
      *  Counts the number of sequences in the input fasta file
@@ -221,60 +281,6 @@ namespace utils {
         cout.flush();
     }
 
-
-    /*
-     *  Calculates the repeat class of the sequence
-     *  @param seq 64-bit integer representing 2-bit string of the sequence
-     *  @param l length of the DNA sequence
-     *  @param m length of the motif size
-     *  @return string of repeat class motif with the strand orientation;
-     *      example: "AGG+"
-    */
-    string get_repeat_class(uint64_t seq, int l, int m, unordered_map<string, string> &rClassMap) {
-        string strand;
-        // Throw error if length cutoff is smaller than 
-        // twice the length of largest motif
-        uint64_t expand = seq >> 2*(l-(2*m)); 
-        uint64_t const NORM = ~(0ull) >> 2*(32-m);
-        uint64_t min = ~(0ull);
-        uint64_t cyc; uint64_t cyc_rc;
-        int palindrome_check = 0;
-
-        for (int i=0; i<m; i++) {
-            cyc = expand & NORM;
-            if (cyc < min) { min = cyc; strand = "+";}
-            cyc_rc = utils::bit_reverse_complement(cyc, m);
-            if (cyc_rc < min) { min = cyc_rc; strand = "-";}
-            if (cyc == cyc_rc) { palindrome_check = 1;}
-            expand = expand >> 2;
-        }
-
-        if (palindrome_check == 1) { strand = "+"; }
-        string repeat_class = utils::bit2base(min, m, m);
-        rClassMap[utils::bit2base(seq, l , m)] = repeat_class + strand;
-
-        return repeat_class + strand;
-    }
-
-    /*
-     *  Filters redundant motif sizes for division rule checks
-     *  @param m minimum motif size
-     *  @param M maximum motif size
-     *  @return list of motif sizes to perform non-redundant checks
-    */
-    vector<uint> get_motif_sizes(uint m, uint M) {
-        vector<uint> a = {M};
-        int vsize = 0;
-        for (int i=M-1; i >= m; --i) {
-            bool check = false;
-            for (int j=0; j < vsize; j++) {
-                if (a[j] % i == 0) { check = true; break; }
-            }
-            if (!check) { a.push_back(i); vsize += 1;}
-        }
-        return a;
-    }
-
     /*
      *  Calculates the atomicity of a motif
      *  @param seq 64-bit integer representing 2-bit string of the sequence
@@ -282,7 +288,7 @@ namespace utils {
      *  @param m length of the motif size
      *  @return atomicity of the motif
     */
-    uint check_atomicity(uint64_t seq, uint l, uint m) {
+    inline uint check_atomicity(uint64_t seq, uint l, uint m) {
         seq = seq >> (2*(l-m));
         for (int i=1; i<m; i++) {
             if (m%i == 0) {

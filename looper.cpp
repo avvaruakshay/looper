@@ -22,15 +22,6 @@ using namespace std::chrono;
 // global variable
 unordered_map<string, string> rClassMap;
 
-// Data structure to track 2-bit sequence of scanned window in the genome
-// and it's location
-struct bitSeqWindow {
-    uint64_t seq = 0, count = 0;
-    uint cutoff = 0;
-    bitSeqWindow() { reset(); }
-    void reset() { seq = count = cutoff = 0;}
-};
-
 
 /* Main function of LOOPER */
 int main(int argc, char* argv[]) {
@@ -52,7 +43,7 @@ int main(int argc, char* argv[]) {
     ofstream out(fout); // output file
     for (int i=0; i<200; i++) { out << " "; }; out << "\n";
     string line;
-    bitSeqWindow window;
+    utils::bitSeqWindow window;
 
     cout << endl << "Searching for tandem repeats in " << fin << endl;
     cout << "Min-motif: " << m << "\t Max-motif: " << M;
