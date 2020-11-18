@@ -6,5 +6,10 @@
         "iosfwd": "cpp",
         "bitset": "cpp"
     },
-    "editor.rulers": [ 80, 120 ]
+    "editor.rulers": [
+        80,
+        120
+    ],
+    "python.linting.pylintEnabled": true,
+    "python.linting.enabled": true
 }

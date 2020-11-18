@@ -68,16 +68,18 @@ def getArgs():
     
     #Basic options
     optional.add_argument('-o', '--output', metavar='<FILE>', help='Output file name. Default: Input file name + _perf.tsv')
-    # optional.add_argument('--format', metavar='<STR>', default='fasta', help='Input file format. Default: fasta, Permissible: fasta, fastq')
+    optional.add_argument('--format', metavar='<STR>', default='fasta', help='Input file format. Default: fasta, Permissible: fasta, fastq')
     optional.add_argument('-v-', '--version', action='version', version='looper ' + __version__)
         
     #Selections options based on motif size and seq lengths
     optional.add_argument('-m', '--min-motif-size', type=int, metavar='<INT>', default=1, help='Minimum size of a repeat motif in bp (Not allowed with -rep)')
     optional.add_argument('-M', '--max-motif-size', type=int, metavar='<INT>', default=6, help='Maximum size of a repeat motif in bp (Not allowed with -rep)')
     optional.add_argument('-l', '--min-length', type=int, metavar='<INT>', help='Minimum length cutoff of repeat')
+    optional.add_argument('--filter-reads', action='store_true', default=False, help='Seperate out the reads with repeats in a new file.')
     
     # Analysis options
     optional.add_argument('-a', '--analyse', action='store_true', default=False, help='Generate a summary HTML report.')
+
 
     # Annotation options
     annotation = parser.add_argument_group('Annotation arguments')
@@ -129,8 +131,17 @@ def main():
     for a in rem_shift: rem_shift_string += str(a) + ','
     rem_shift_string = rem_shift_string[:-1] + '}'
 
+    template_file = ''
+    filtered_file = ''
+    if args.format == 'fasta':
+        template_file = './pylooper_fasta_template.cpp'
+    elif args.format == 'fastq':
+        template_file = './pylooper_fastq_template.cpp'
+        if args.filter_reads: 
+            filtered_file = splitext(args.input)[0] + '_looper.filtered.fastq'
+
     script = open('./pylooper.cpp', 'w')
-    with open('./pylooper_template.cpp') as fh:
+    with open(template_file) as fh:
         for line in fh:
             line = line.rstrip()
             if '$' in line:
@@ -149,7 +160,11 @@ def main():
         print('\n\nError compiling the cpp auxiliary code. Please check for proper\
                installation of g++. ')
         sys.exit()
-    os.system('./pylooper  {input} {output}'.format(input=args.input, output=args.output))
+    
+    if args.format == 'fastq' and args.filter_reads:
+        os.system('./pylooper  {input} {output} {filtered_file}'.format(input=args.input, output=args.output, filtered_file=filtered_file))
+    else:
+        os.system('./pylooper  {input} {output}'.format(input=args.input, output=args.output))
 
     if args.annotate: annotate_repeats(args)
 

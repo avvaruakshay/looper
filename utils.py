@@ -39,7 +39,7 @@ def rawcharCount(filename, char):
     Returns
     -------
     INT, count of the character
-    """"
+    """
     if filename.endswith('gz'):
         f = gzip.open(filename, 'rb')
     else:
