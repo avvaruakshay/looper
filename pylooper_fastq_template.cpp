@@ -22,7 +22,7 @@ using namespace std;
 using namespace std::chrono;
 
 unordered_map<string, string> rclass_map;
-unordered_map<string, uint> repeats_count;
+unordered_map<string, uint> repeats_count, repeats_reads, repeats_bases;
 unordered_map<string, unordered_map<uint, uint>> repeats_length_freq;
 unordered_map<uint, uint> read_length_dist;
 uint total_repeats, total_repeat_reads, total_repeat_bases;
@@ -35,11 +35,12 @@ uint total_repeats, total_repeat_reads, total_repeat_bases;
  * @param repeats_length_freq  Reference for the unordered_map tracking length wise frequency
 */
 void update_result( string repeat_class, uint rlen,
-                    unordered_map<string, uint> &repeats_count, 
+                    unordered_map<string, uint> &repeats_count, unordered_map<string, uint> &repeats_bases,
                     unordered_map<string, unordered_map<uint, uint>> &repeats_length_freq )
 {
     if (repeats_count.find(repeat_class) != repeats_count.end()) {
         repeats_count[repeat_class] += 1;
+        repeats_bases[repeat_class] += rlen;
         if (repeats_length_freq[repeat_class].find(rlen) != repeats_length_freq[repeat_class].end()) {
             repeats_length_freq[repeat_class][rlen] += 1;
         }
@@ -49,6 +50,7 @@ void update_result( string repeat_class, uint rlen,
     }
     else {
         repeats_count[repeat_class] = 1;
+        repeats_bases[repeat_class] = rlen;
         repeats_length_freq[repeat_class][rlen] = 1;
     }
 }
@@ -101,6 +103,8 @@ int main(int argc, char *argv[]) {
         if (read_length_dist.find(read_length) != read_length_dist.end()) {
             read_length_dist[read_length] += 1;
         } else { read_length_dist[read_length] = 1; }
+        vector<string> read_repeats;
+
         for(const auto c: curr_read.sequence) {
             switch(c) {
                 case 'a': case 'A': break;
@@ -112,9 +116,9 @@ int main(int argc, char *argv[]) {
                     window.seq = 0; window.cutoff = -1;
                     if (start != -1) {
                         filter = true;
-                        end = window.count - 1; rlen = end - start;
+                        end = window.count; rlen = end - start;
                         total_repeat_bases += rlen;
-                        update_result(repeat_class, rlen, repeats_count, repeats_length_freq);
+                        update_result(repeat_class, rlen, repeats_count, repeats_bases, repeats_length_freq);
                     }
                     start = -1;
                     break;
@@ -145,6 +149,8 @@ int main(int argc, char *argv[]) {
                                         repeat_class = utils::get_repeat_class(window.seq, cutoff, atomicity, rclass_map);
                                     }
                                     repeat_class = repeat_class.substr(0, atomicity);
+                                    vector<string>::iterator found = find(read_repeats.begin(), read_repeats.end(), repeat_class);
+                                    if (found == read_repeats.end()) { read_repeats.push_back(repeat_class); }
                                     strand = repeat_class.substr(atomicity, 1);
                                 }
                             }
@@ -156,7 +162,7 @@ int main(int argc, char *argv[]) {
                     filter = true;
                     end = window.count - 1; rlen = end - start;
                     total_repeat_bases += rlen;
-                    update_result(repeat_class, rlen, repeats_count, repeats_length_freq);
+                    update_result(repeat_class, rlen, repeats_count, repeats_bases, repeats_length_freq);
 
                     start = -1;
                 }
@@ -167,9 +173,9 @@ int main(int argc, char *argv[]) {
         // if read ends in a repeat
         if (start != -1) {
             filter = true;
-            end = window.count - 1; rlen = end - start;
+            end = window.count; rlen = end - start;
             total_repeat_bases += rlen;
-            update_result(repeat_class, rlen, repeats_count, repeats_length_freq);
+            update_result(repeat_class, rlen, repeats_count, repeats_bases, repeats_length_freq);
             start = -1;
         }
 
@@ -198,6 +204,11 @@ int main(int argc, char *argv[]) {
             std::cout.flush();
         }
 
+        for(vector<string>::iterator it=read_repeats.begin(); it!=read_repeats.end(); it++) {
+            if (repeats_reads.find(*it) != repeats_reads.end()) { repeats_reads[*it] += 1; }
+            else { repeats_reads[*it] = 1; }
+        }
+
         curr_read = ins.fetch();
     }
 
@@ -210,11 +221,13 @@ int main(int argc, char *argv[]) {
     std::cout << fixed << setprecision(2) <<"Reads processed: " << ins.currentCount() << "|";
     std::cout << fixed << setprecision(2) <<"Reads per sec: " << ins.currentCount()/total_time << "\n";
 
-    out << "#TotalReads: "     << ins.currentCount()   << "\n";
-    out << "#TotalBases: "     << ins.currentBases()   << "\n";
-    out << "#RepeatReads: "    << total_repeat_reads   << "\n";
-    out << "#TotalRepeats: "   << total_repeats        << "\n";
-    out << "#NumRepClasses: "  << repeats_count.size() << "\n";
+    out << "#TotalReads: "          << ins.currentCount()   << "\n";
+    out << "#TotalBases: "          << ins.currentBases()   << "\n";
+    out << "#RepeatReads: "         << total_repeat_reads   << "\n";
+    out << "#RepeatBases: "         << total_repeat_bases   << "\n";
+    out << "#TotalRepeats: "        << total_repeats        << "\n";
+    out << "#PercentRepeatReads: "  << (float(total_repeat_reads)/float(ins.currentCount()))*100 << "\n";
+    out << "#NumRepClasses: "       << repeats_count.size() << "\n";
 
     out << "#ReadLengthDist: ";
     vector<uint> read_lengths;
@@ -222,9 +235,13 @@ int main(int argc, char *argv[]) {
         uint length = it->first;
         read_lengths.push_back(length);
     }
-    sort(read_lengths.begin(), read_lengths.end());
+    sort(read_lengths.begin(), read_lengths.end(), [](uint a, uint b) { return a < b; });
     for (auto l = read_lengths.begin(); l != read_lengths.end(); l++) {
-        out << *l << '-' << read_length_dist[*l] << ';';
+        if (l == read_lengths.end() - 1) {
+            out << *l << '-' << read_length_dist[*l];
+        } else {
+            out << *l << '-' << read_length_dist[*l] << ';';
+        }
     }
     out << "\n";
 
@@ -232,9 +249,22 @@ int main(int argc, char *argv[]) {
         uint reads = ins.currentCount();
         string rclass = it->first;
         uint freq = it->second;
-        out << rclass << "\t" << freq << "\t" << (float(freq)/float(reads))*100000 << "\t";
-        for (auto jt = repeats_length_freq[rclass].begin(); jt != repeats_length_freq[rclass].end(); jt++) {
-            out << jt->first << "-" << jt->second << ";";
+        uint rreads = repeats_reads[rclass];
+        uint rbases = repeats_bases[rclass];
+        out << rclass << "\t" << freq << "\t" << rreads << "\t" \
+            //<< (float(rreads)/float(reads))*100000 << "\t"
+            << rbases << "\t";
+        vector<uint> rlengths;
+        for(auto it=repeats_length_freq[rclass].begin(); it!=repeats_length_freq[rclass].end(); it++) {
+            rlengths.push_back(it->first);
+        }
+        sort(rlengths.begin(), rlengths.end(), [](uint a, uint b) { return a < b; });
+        for (auto jt = rlengths.begin(); jt != rlengths.end(); jt++) {
+            if (jt == rlengths.end() - 1) {
+                out << *jt << "-" << repeats_length_freq[rclass][*jt];
+            } else {
+                out << *jt << "-" << repeats_length_freq[rclass][*jt] << ";";
+            }
         }
         out << "\n";
     }

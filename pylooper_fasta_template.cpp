@@ -39,7 +39,7 @@ int main(int argc, char* argv[]) {
 
     cout << '\n' << "Searching for tandem repeats in " << fin << '\n';
     cout << "Min-motif: " << m << "\t Max-motif: " << M;
-    cout << "\t Length-cutoff: " << cutoff <<  '\n\n';
+    cout << "\t Length-cutoff: " << cutoff <<  "\n\n";
 
     uint64_t start_time = duration_cast<milliseconds>(
         system_clock::now().time_since_epoch()

@@ -1,7 +1,0 @@
-#FileName: test_128.fa
-#GenomeSize: 322
-#GC%: 91.3044
-#NumSeq: 1                                                                                                                                        
-test	29	93	TTTTTTTTTTTTTTTTTTTTTTTTT	64		2	AG
-test	54	118	TTTTTTTTTTTTTTTTTTTTTTTTT	64		2	AG
-test	79	143	TTTTTTTTTTTTTTTTTTTTTTTTT	64		2	AG

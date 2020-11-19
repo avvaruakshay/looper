@@ -22,7 +22,7 @@ import os, argparse, sys
 from os.path import splitext
 
 # Owned
-from analyse import generate_defaultInfo
+from analyse import analyse_fasta, analyse_fastq
 from annotation import annotate_repeats
 
 if sys.version_info[0] == 2:
@@ -168,7 +168,9 @@ def main():
 
     if args.annotate: annotate_repeats(args)
 
-    if args.analyse: generate_defaultInfo(args)
+    if args.analyse:
+        if args.format == 'fasta': analyse_fasta(args)
+        elif args.format == 'fastq': analyse_fastq(args)
 
 if __name__ == "__main__":
     main()
