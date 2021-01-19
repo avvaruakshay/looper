@@ -168,8 +168,10 @@ def main():
         os.system('./pylooper  {input} {output} {filtered_file}'.format(input=args.input, output=args.output, filtered_file=filtered_file))
     if args.format == 'fastq' and args.input.endswith('.gz'):
         os.system('zcat {input} | ./pylooper {output} '.format(input=args.input, output=args.output))
+    if args.format == 'fastq' and args.input.endswith('.gz') and args.filter_reads:
+        os.system('zcat {input} {filtered_file} | ./pylooper {output} '.format(input=args.input, output=args.output, filtered_file=filtered_file))
     else:
-        os.system('./pylooper  {input} {output}'.format(input=args.input, output=args.output))
+        os.system('./pylooper {input} {output}'.format(input=args.input, output=args.output))
 
     if args.annotate: annotate_repeats(args)
 
