@@ -1,8 +1,9 @@
-#TotalReads: 3
-#TotalBases: 453
-#RepeatReads: 0
-#RepeatBases: 0
-#TotalRepeats: 0
-#PercentRepeatReads: 0
-#NumRepClasses: 0
-#ReadLengthDist: 151-3
+#TotalReads: 10
+#TotalBases: 1000
+#RepeatReads: 1
+#RepeatBases: 13
+#TotalRepeats: 1
+#PercentRepeatReads: 10
+#NumRepClasses: 1
+#ReadLengthDist: 100-10
+AACCCC	1	1	13	13-1

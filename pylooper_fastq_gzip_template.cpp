@@ -62,11 +62,10 @@ int main(int argc, char *argv[]) {
     string fout = argv[1];
     ofstream filterOut;
     bool filter_reads = false;
-    if (argv[3]) {
+    if (argv[2]) {
         filter_reads = true;
-        filterOut.open(argv[3]);
+        filterOut.open(argv[2]);
     }
-    
 
     fastq::Input ins = fastq::Input();
     
@@ -214,17 +213,20 @@ int main(int argc, char *argv[]) {
         system_clock::now().time_since_epoch()
     ).count();
     float total_time = float(now-start_time)/1000.0;
+    uint total_reads = ins.currentCount();
+    uint total_bases = ins.currentBases();
 
-    std::cout << fixed << setprecision(2) <<"Time elapsed: " << total_time << "secs|";
-    std::cout << fixed << setprecision(2) <<"Reads processed: " << ins.currentCount() << "|";
-    std::cout << fixed << setprecision(2) <<"Reads per sec: " << ins.currentCount()/total_time << "\n";
+    std::cout << fixed << setprecision(2) << "Time elapsed: " << total_time << "secs|";
+    std::cout << fixed << setprecision(2) << "Reads processed: " << total_reads << "|";
+    std::cout << fixed << setprecision(2) << "Reads per sec: " << total_reads/total_time << "\n";
 
-    out << "#TotalReads: "          << ins.currentCount()   << "\n";
-    out << "#TotalBases: "          << ins.currentBases()   << "\n";
+
+    out << "#TotalReads: "          << total_reads          << "\n";
+    out << "#TotalBases: "          << total_bases          << "\n";
     out << "#RepeatReads: "         << total_repeat_reads   << "\n";
     out << "#RepeatBases: "         << total_repeat_bases   << "\n";
     out << "#TotalRepeats: "        << total_repeats        << "\n";
-    out << "#PercentRepeatReads: "  << (float(total_repeat_reads)/float(ins.currentCount()))*100 << "\n";
+    out << "#PercentRepeatReads: "  << (float(total_repeat_reads)/float(total_reads))*100 << "\n";
     out << "#NumRepClasses: "       << repeats_count.size() << "\n";
 
     out << "#ReadLengthDist: ";
@@ -244,13 +246,11 @@ int main(int argc, char *argv[]) {
     out << "\n";
 
     for (auto it = repeats_count.begin(); it != repeats_count.end(); it++) {
-        uint reads = ins.currentCount();
         string rclass = it->first;
         uint freq = it->second;
         uint rreads = repeats_reads[rclass];
         uint rbases = repeats_bases[rclass];
         out << rclass << "\t" << freq << "\t" << rreads << "\t" \
-            //<< (float(rreads)/float(reads))*100000 << "\t"
             << rbases << "\t";
         vector<uint> rlengths;
         for(auto it=repeats_length_freq[rclass].begin(); it!=repeats_length_freq[rclass].end(); it++) {

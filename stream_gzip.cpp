@@ -8,17 +8,19 @@
 int main(int argc, char* argv[]) {
     fastq::Input a = fastq::Input();
 
-    // char *inp = argv[1];
     std::cout << argv[1] << std::endl;
-    if (argv[2]) {
-        std::cout << argv[2] << std::endl;
+    uint line_count = 1;
+    fastq::Read curr_read = a.fetch();
+    while (curr_read.valid) {
+        std::cout << curr_read.identifier << "\n";
+        std::cout << curr_read.sequence << "\n";
+        std::cout << curr_read.separator << "\n";
+        std::cout << curr_read.baseQual << "\n";
+        curr_read = a.fetch();
+        std::cout << curr_read.valid << "\n";
     }
 
-    fastq::Read read = a.fetch();
-    std::cout << read.identifier << "\n";
-    std::cout << read.sequence << "\n";
-    std::cout << read.separator << "\n";
-    std::cout << read.baseQual << "\n";
+    std::cout << a.currentCount() << "\n";
     return 0;
 }
 
