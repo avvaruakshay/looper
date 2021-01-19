@@ -11,7 +11,6 @@
 
 using namespace std;
 
-
 namespace fastq {
 
     struct Read {
@@ -33,7 +32,7 @@ namespace fastq {
      * 3. Separator  - Separator usually "+". 
      * 4. Qual       - Base call quality string. 
     */
-    class FastqFile {
+    class Input {
 
         private:
             Read read;
@@ -50,22 +49,22 @@ namespace fastq {
             */
             Read fetch() {
                 read.valid = false;
-
-                if (ins.eof()) {
-                    // std::cout << "End of the file reached! Total reads: " << read_count << '\n';
-                    ins.close(); // close the file
-                    // reset read to have empty members and return read
-                    read.reset(); read.valid = false;
-                }
-                else {
-                    std::getline(ins, read.identifier);
-                    std::getline(ins, read.sequence);
-                    std::getline(ins, read.separator);
-                    std::getline(ins, read.baseQual);
-                    if (read.identifier != "") {
-                        read.valid = true;
-                        read_count++; bases += read.sequence.length();
+                bool line_read = false;
+                uint line_count = 1;
+                string line;
+                while (line_count % 5 != 0 && std::getline(std::cin, line) ) {
+                    switch (line_count) {
+                        case 1: read.identifier = line; break;
+                        case 2: read.sequence = line; break;
+                        case 3: read.separator = line; break;
+                        case 4: read.baseQual = line; break;
                     }
+                    line_count++;
+                    line_read = true;
+                }
+                if (read.identifier != "" && line_read) {
+                    read.valid = true;
+                    read_count++; bases += read.sequence.length();
                 }
                 return read;
             }

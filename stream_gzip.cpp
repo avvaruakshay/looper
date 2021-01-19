@@ -3,32 +3,22 @@
 #include <sstream>
 #include <vector>
 
+#include "fastq_gzip_reader.h"
+
 int main(int argc, char* argv[]) {
-    
+    fastq::Input a = fastq::Input();
+
     // char *inp = argv[1];
     std::cout << argv[1] << std::endl;
-    std::cout << argv[2] << std::endl;
-    // char c;
-    // std::cin >> c;
-    // std::cout << c << std::endl;
-    // char b;
-    // while (std::cin >> b) {        
-    //     std::cout << b << std::endl;
-    // }
-
-    // char c;
-    // std::vector<int> cl;
-    std::string line;
-    uint line_count = 1;
-    // std::getline(std::cin, line);
-    // std::istringstream iss(line);
-    for (int i=0; i< 5; i++) {
-        while ( line_count % 5 != 0 && std::getline(std::cin, line) ) {
-            std::cout << line << " " << line_count << "\n";
-            line_count++;
-        }
-        line_count = 1;
+    if (argv[2]) {
+        std::cout << argv[2] << std::endl;
     }
+
+    fastq::Read read = a.fetch();
+    std::cout << read.identifier << "\n";
+    std::cout << read.sequence << "\n";
+    std::cout << read.separator << "\n";
+    std::cout << read.baseQual << "\n";
     return 0;
 }
 

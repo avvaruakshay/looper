@@ -136,7 +136,10 @@ def main():
     if args.format == 'fasta':
         template_file = './pylooper_fasta_template.cpp'
     elif args.format == 'fastq':
-        template_file = './pylooper_fastq_template.cpp'
+        if args.input.endswith('.gz'):
+            template_file = './pylooper_fastq_gzip_template.cpp'
+        else:
+            template_file = './pylooper_fastq_template.cpp'
         if args.filter_reads: 
             filtered_file = splitext(args.input)[0] + '_looper.filtered.fastq'
 
@@ -163,6 +166,8 @@ def main():
     
     if args.format == 'fastq' and args.filter_reads:
         os.system('./pylooper  {input} {output} {filtered_file}'.format(input=args.input, output=args.output, filtered_file=filtered_file))
+    if args.format == 'fastq' and args.input.endswith('.gz'):
+        os.system('zcat {input} | ./pylooper {output} '.format(input=args.input, output=args.output))
     else:
         os.system('./pylooper  {input} {output}'.format(input=args.input, output=args.output))
 
