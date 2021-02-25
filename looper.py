@@ -67,7 +67,7 @@ def getArgs():
     optional = parser.add_argument_group('Optional arguments')
     
     #Basic options
-    optional.add_argument('-o', '--output', metavar='<FILE>', help='Output file name. Default: Input file name + _perf.tsv')
+    optional.add_argument('-o', '--output', metavar='<FILE>', help='Output file name. Default: Input file name + _looper.tsv')
     optional.add_argument('--format', metavar='<STR>', default='fasta', help='Input file format. Default: fasta, Permissible: fasta, fastq')
     optional.add_argument('-v-', '--version', action='version', version='looper ' + __version__)
         
@@ -96,6 +96,8 @@ def getArgs():
     
     if args.output is None:
         args.output = splitext(args.input)[0] + '_looper.tsv'
+    
+    print(args.output)
 
     return args
 

@@ -114,8 +114,8 @@ int main(int argc, char* argv[]) {
                                     } else {
                                         repeat_class = utils::get_repeat_class(window.seq, cutoff, atomicity, rclass_map);
                                     }
-                                    repeat_class = repeat_class.substr(0, atomicity);
                                     strand = repeat_class.substr(atomicity, 1);
+                                    repeat_class = repeat_class.substr(0, atomicity);
                                 }
                             }
                             window_repeat_check = 1; break;
