@@ -67,7 +67,7 @@ int main(int argc, char* argv[]) {
             if (start != -1) {
                 end = window.count; rlen = end - start;
                 if (compound) {
-                    if (compound_repeat.repeat_class.size() > 1) {
+                    if (compound_repeat.motif.size() > 1) {
                         compound_repeat.report();
                         comp_out << compound_repeat.output << '\n';
                     }
@@ -133,7 +133,7 @@ int main(int argc, char* argv[]) {
                                             compound_repeat.overlap.push_back(start-compound_repeat.end);
                                         }
                                         else {
-                                            if (compound_repeat.repeat_class.size() > 1) {
+                                            if (compound_repeat.motif.size() > 1) {
                                                 compound_repeat.report();
                                                 comp_out << compound_repeat.output << '\n';
                                             }
@@ -171,7 +171,7 @@ int main(int argc, char* argv[]) {
     if (start != -1) {
         end = window.count; rlen = end - start;
         if (compound) {
-            if (compound_repeat.repeat_class.size() > 1) {
+            if (compound_repeat.motif.size() > 1) {
                 compound_repeat.report();
                 comp_out << compound_repeat.output << '\n';
             }

@@ -42,23 +42,30 @@ namespace utils {
         }
         void report() {
             string rclass_c, motif_c, strand_c = "";
+            int rclass_count = 0;
+            string prev_rclass = repeat_class[0];
             for (int i=0; i<repeat_class.size(); i++) {
+                if (repeat_class[i] == prev_rclass) {
+                    rclass_count += 1;
+                } else {
+                    rclass_c += "(" + prev_rclass + ")" + to_string(rclass_count);
+                    prev_rclass = repeat_class[i];
+                    rclass_count = 1;
+                }
+                prev_rclass = repeat_class[i];
+
                 if (i == repeat_class.size() - 1) {
-                    rclass_c += repeat_class[i];
                     strand_c  += strand[i];
                     motif_c  += "(" + motif[i] + ")" + to_string(rlen[i]);
                 }
                 else {
-                    rclass_c += repeat_class[i] + "|";
                     strand_c  += strand[i] + "|";
                     motif_c  += "(" + motif[i] + ")" + to_string(rlen[i]) + "-(" + to_string(overlap[i]) + ")-";
                 }
             }
-            // rclass_c += repeat_class[i]; rclass_c.substr(0, rclass_c.size()-1);
-            // motif_c = motif_c.substr(0, motif_c.size()-1);
-            // strand_c = strand_c.substr(0, strand_c.size()-1);
+            rclass_c += "(" + prev_rclass + ")" + to_string(rclass_count);
             output = (seq_name + "\t" + to_string(start) + "\t" + to_string(end) +
-                     "\t" + rclass_c + "\t" + motif_c + "\t" + strand_c);
+                     "\t" + rclass_c + "\t" + to_string(end-start) + "\t" + strand_c + "\t" + motif_c);
         }
     };
 

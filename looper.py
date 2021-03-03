@@ -79,12 +79,11 @@ def getArgs():
 
     #coumpound repeat
     compound = parser.add_argument_group('Compound repeat arguments')
-    compound.add_argument('--compound', action='store_true', default=False, help='Report compound repeats which overlap or are closer to each other.')
-    compound.add_argument('-d', '--overlap-distance', type=int, default=0, help='Distance between repeat to be reported as compound repeat. Use negative to denote overlap.')
+    compound.add_argument('--compound', action='store_true', default=False, help='Report compound repeats. The output of compound repeats is in a separate file with the suffix ".compound".')
+    compound.add_argument('-d', '--comp-dist', type=int, metavar='<INT>', default=0, help='Maximum distance between individual repeats of compound repeat. Use negative to denote overlap. Default: 0')
     
     # Analysis options
     optional.add_argument('-a', '--analyse', action='store_true', default=False, help='Generate a summary HTML report.')
-
 
     # Annotation options
     annotation = parser.add_argument_group('Annotation arguments')
@@ -134,7 +133,7 @@ def main():
     overlap_d_string = 'int overlap_d = 0;'
     if args.compound:
         compound_string = compound_string[:-2] + '1;'
-        overlap_d_string = overlap_d_string[:-2] + str(args.overlap_distance) + ';'
+        overlap_d_string = overlap_d_string[:-2] + str(args.comp_dist) + ';'
 
     div_string = 'uint64_t divisor[{N}] = '.format(N=N) + '{'
     for a in divisor: div_string += str(a) + ','

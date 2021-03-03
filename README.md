@@ -1,13 +1,12 @@
-# 100PER
+# Looper
 
 [![Build](https://img.shields.io/badge/Build-passing-brightgreen.svg)]()
 [![License](https://img.shields.io/badge/Licence-MIT-blue.svg)]()
 
 <img src="./lib/looper_logo.jpg" alt="logo" height="80"/>
 
-100PER pronounced as Looper is a DNA tandem repeat identification tool. Tandem 
-repeats are important genomic sequences which have functional and evolutionary 
-significance.
+Looper is a DNA tandem repeat identification tool. Tandem repeats are important 
+genomic sequences which have functional and evolutionary significance.
 
 Looper is scripted in C++. 
 
@@ -33,6 +32,11 @@ Optional arguments:
   -l, --min-length		<INT>	Cutoff repeat length. Default: 2*M.
  								Should at least be twice of maximum motif size.
   -a, --analyse					Generate a summary HTML report.
+
+Compound repeat arguments:
+  --compound            Report compound repeats. The output of compound repeats is a separate file with the suffix ".compound".
+  -d <INT>, --comp-dist <INT>
+                        Maximum distance between individual repeats of compound repeat. Use negative to denote overlap. Default: 0
 
 Annotation arguments:
   -g, --annotate		<FILE>	Genomic feature file to annotate repeats w.r.t genes.
@@ -118,7 +122,42 @@ input filename was my_seq.fa, the analysis report will be my_seq_looper.html. An
 example HTML report, generated from the repeat data of Homo sapiens (build hg19),
 can be accessed here (Right click -> Save As).
 
-``
+### `--compound`
+**Expects:** *None*<br>
+**Default:** *False*<br>
+This is flag which when set to true reports all compound repeats. Compound repeats
+are repeats which are either overlapping or separated by a small gap. Compound repeats
+are reported in a separate file with the extension ".compound". The maximum distance
+between two individual repeats of a compound repeat can be set using the option `-d`.
+The compoud repeat has four columns with first four denoting the sequence, start, 
+end and length of the repeat. The fifth column denotes the repeat classes of individual
+repeats of the compound repeat and the number of different cyclical variations that
+have occured as compound repeat. The sixth column is the strand of the individual
+repeats. The seventh column is denotes the actual motifs of individual repeats, 
+repeat length and the distance between the individual repeats. Below is an example
+output reporting compound repeats.
+
+```
+chr1	10330	10392	(AACCCT)2	(CCCTAA)23-(0)-(ACCCTA)40	+|+
+chr1	10397	10468	(AACCCT)2	(CCCTAA)45-(0)-(CCCTAA)28	+|+
+chr1	10630	10654	(CCGCG)1(AGGCGC)1	(CGCGC)12-(0)-(GGCGCA)13	+|+
+chr1	10659	10683	(CCGCG)1(AGGCGC)1	(CGCGC)12-(0)-(GGCGCA)13	+|+
+chr1	10688	10712	(CCGCG)1(AGGCGC)1	(CGCGC)12-(0)-(GGCGCA)13	+|+
+chr1	10717	10741	(CCGCG)1(AGGCGC)1	(CGCGC)12-(0)-(GGCGCA)13	+|+
+chr1	10746	10770	(CCGCG)1(AGGCGC)1	(CGCGC)12-(0)-(GGCGCA)13	+|+
+chr1	10775	10799	(CCGCG)1(AGGCGC)1	(CGCGC)12-(0)-(GGCGCA)13	+|+
+chr1	10847	10871	(CCGCG)1(AGGCGC)1	(CGCGC)12-(0)-(GGCGCA)13	+|+
+chr1	27543	27561	(AAAAG)1(AAAAAG)1	(TTTCT)13-(0)-(TTTTCT)14	-|-
+chr1	49834	49861	(AAAC)1(AAAAC)1	(AAAC)19-(0)-(AAACA)15	+|+
+chr1	50560	50587	(AAAAG)1(AAAGG)1	(TTCTT)12-(0)-(TTTCC)17	-|-
+chr1	66257	66287	(AAATAT)1(AATAT)2	(AATATA)13-(0)-(AATAT)12-(-2)-(ATTAT)12	+|+|-
+chr1	66294	66312	(AAATAT)1(AATAT)1	(AATATA)13-(0)-(AATAT)12	+|+
+```
+
+### `-d or --comp-dist`
+**Expects:** *INTEGER*<br>
+**Default:** *0*<br>
+Maximum distance between two individual repeats of a compound repeat. To report repeats overlapping by X bp use negative numbers i.e., -X. The default is 0bp. 
 
 ### `-g or --annotate`
 **Expects:** *FILE*<br>
