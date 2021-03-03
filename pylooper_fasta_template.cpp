@@ -33,9 +33,12 @@ int main(int argc, char* argv[]) {
     out << "#GC: " << (float(GC) / float(gsize))*100 << '\n';
     out << "#NumSeq: " << sequences << '\n';
     string line;
-    utils::bitSeqWindow window;    
+    utils::bitSeqWindow window;
+    utils::compoundRepeat compound_repeat;
     
     $ python_input; // parameters input from python script
+
+    ofstream comp_out(argv[3]);
 
     cout << '\n' << "Searching for tandem repeats in " << fin << '\n';
     cout << "Min-motif: " << m << "\t Max-motif: " << M;
@@ -49,7 +52,7 @@ int main(int argc, char* argv[]) {
     // integer tracking the start of the repeat
     // -1 indicates no repeat is found 
     int start = -1; 
-    uint end, rlen, atomicity;
+    int end, rlen, atomicity;
     int window_repeat_check = 0;  // bool tracking if the window sequence is a repeat
     int numseq = 0;    // current sequence number
     string seq_name, motif, repeat_class, strand;
@@ -63,6 +66,13 @@ int main(int argc, char* argv[]) {
             float progress = ((float) numseq) / ((float) sequences);
             if (start != -1) {
                 end = window.count; rlen = end - start;
+                if (compound) {
+                    if (compound_repeat.repeat_class.size() > 1) {
+                        compound_repeat.report();
+                        comp_out << compound_repeat.output << '\n';
+                    }
+                    compound_repeat.reset();
+                }
                 out << seq_name << "\t" << start << "\t" << end << "\t" \
                     << repeat_class << "\t" << rlen << "\t" \ 
                     << strand << "\t" << rlen/atomicity << "\t" << motif << '\n';
@@ -107,6 +117,7 @@ int main(int argc, char* argv[]) {
                                 // atomicity should be greater than 
                                 // minimum motif-size
                                 if (atomicity >= m) {
+
                                     start = window.count - cutoff;
                                     motif = utils::bit2base(window.seq, cutoff, atomicity);
                                     if (rclass_map.find(motif) != rclass_map.end()) { 
@@ -116,13 +127,37 @@ int main(int argc, char* argv[]) {
                                     }
                                     strand = repeat_class.substr(atomicity, 1);
                                     repeat_class = repeat_class.substr(0, atomicity);
+
+                                    if (compound) {
+                                        if ( start <= compound_repeat.end + overlap_d) {
+                                            compound_repeat.overlap.push_back(start-compound_repeat.end);
+                                        }
+                                        else {
+                                            if (compound_repeat.repeat_class.size() > 1) {
+                                                compound_repeat.report();
+                                                comp_out << compound_repeat.output << '\n';
+                                            }
+                            
+                                            compound_repeat.reset();
+                                            compound_repeat.start = start;
+                                            compound_repeat.seq_name = seq_name;
+                                        }
+                                        compound_repeat.repeat_class.push_back(repeat_class);
+                                        compound_repeat.strand.push_back(strand);
+                                        compound_repeat.motif.push_back(motif);
+                                    }
+
                                 }
                             }
                             window_repeat_check = 1; break;
                         }
                     }
                     if (window_repeat_check == 0 & start != -1) {
-                        end = window.count - 1; rlen = end - start;                        
+                        end = window.count - 1; rlen = end - start;
+                        if (compound) {
+                            compound_repeat.end = end;
+                            compound_repeat.rlen.push_back(rlen);
+                        }
                         out << seq_name << "\t" << start << "\t" << end << "\t" \
                             << repeat_class << "\t" << rlen << "\t" \ 
                             << strand << "\t" << rlen/atomicity << "\t" << motif << '\n';
@@ -135,6 +170,13 @@ int main(int argc, char* argv[]) {
     }
     if (start != -1) {
         end = window.count; rlen = end - start;
+        if (compound) {
+            if (compound_repeat.repeat_class.size() > 1) {
+                compound_repeat.report();
+                comp_out << compound_repeat.output << '\n';
+            }
+            compound_repeat.reset();
+        }
         out << seq_name << "\t" << start << "\t" << end << "\t" \
             << repeat_class << "\t" << rlen << "\t" \ 
             << strand << "\t" << rlen/atomicity << "\t" << motif << '\n';

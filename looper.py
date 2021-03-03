@@ -76,6 +76,11 @@ def getArgs():
     optional.add_argument('-M', '--max-motif-size', type=int, metavar='<INT>', default=6, help='Maximum size of a repeat motif in bp (Not allowed with -rep)')
     optional.add_argument('-l', '--min-length', type=int, metavar='<INT>', help='Minimum length cutoff of repeat')
     optional.add_argument('--filter-reads', action='store_true', default=False, help='Seperate out the reads with repeats in a new file.')
+
+    #coumpound repeat
+    compound = parser.add_argument_group('Compound repeat arguments')
+    compound.add_argument('--compound', action='store_true', default=False, help='Report compound repeats which overlap or are closer to each other.')
+    compound.add_argument('-d', '--overlap-distance', type=int, default=0, help='Distance between repeat to be reported as compound repeat. Use negative to denote overlap.')
     
     # Analysis options
     optional.add_argument('-a', '--analyse', action='store_true', default=False, help='Generate a summary HTML report.')
@@ -97,7 +102,7 @@ def getArgs():
     if args.output is None:
         args.output = splitext(args.input)[0] + '_looper.tsv'
     
-    print(args.output)
+    print('Printing output to:',args.output)
 
     return args
 
@@ -124,6 +129,12 @@ def main():
         D = ('0'*((2*a)-1) + '1')*d + '0'*(2*r)
         divisor.append(int(D, 2))
         rem_shift.append( int(2*(cutoff - (cutoff % motif_checks[i]))) )
+
+    compound_string = 'uint compound = 0;'
+    overlap_d_string = 'int overlap_d = 0;'
+    if args.compound:
+        compound_string = compound_string[:-2] + '1;'
+        overlap_d_string = overlap_d_string[:-2] + str(args.overlap_distance) + ';'
 
     div_string = 'uint64_t divisor[{N}] = '.format(N=N) + '{'
     for a in divisor: div_string += str(a) + ','
@@ -158,12 +169,13 @@ def main():
                 line += '\n{prefix}uint N = {N};'.format(prefix=prefix, N=N)
                 line += '\n{prefix}{div_string};'.format(prefix=prefix, div_string=div_string)
                 line += '\n{prefix}{rem_shift_string};'.format(prefix=prefix, rem_shift_string=rem_shift_string)
+                line += '\n{prefix}{compound_string};'.format(prefix=prefix, compound_string=compound_string)
+                line += '\n{prefix}{overlap_d_string};'.format(prefix=prefix, overlap_d_string=overlap_d_string)
             print(line, file=script)
     script.close()
     status = os.system('g++ ./pylooper.cpp -O3 -o pylooper')
     if sys.platform.startswith('linux') and status != 0:
-        print('\n\nError compiling the cpp auxiliary code. Please check for proper\
-               installation of g++. ')
+        print('\n\nError compiling the cpp auxiliary code. Please check for proper installation of g++. ')
         sys.exit()
     
     if args.format == 'fastq' and args.filter_reads:
@@ -172,6 +184,9 @@ def main():
         os.system('zcat {input} | ./pylooper {output} '.format(input=args.input, output=args.output))
     elif args.format == 'fastq' and args.input.endswith('.gz') and args.filter_reads:
         os.system('zcat {input} {filtered_file} | ./pylooper {output} '.format(input=args.input, output=args.output, filtered_file=filtered_file))
+    elif args.format == 'fasta' and args.compound:
+        comp_out = args.output + '.compound'
+        os.system('./pylooper {input} {output} {comp_out}'.format(input=args.input, output=args.output, comp_out=comp_out))
     else:
         os.system('./pylooper {input} {output}'.format(input=args.input, output=args.output))
 

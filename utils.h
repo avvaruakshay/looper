@@ -19,10 +19,47 @@ namespace utils {
 
     /* Data structure tracking the window sequence */
     struct bitSeqWindow {
-        uint64_t seq = 0, count = 0;
-        uint cutoff = 0;
+        int64_t seq = 0, count = 0;
+        int cutoff = 0;
         bitSeqWindow() { reset(); }
         void reset() { seq = count = cutoff = 0;}
+    };
+
+
+    /* Data structure to store compound repeat */
+    struct compoundRepeat {
+        string output = "";
+        string seq_name;
+        uint start, end;
+        vector<string> repeat_class, motif, strand;
+        vector<int> overlap, rlen;
+        compoundRepeat() { reset(); }
+        void reset() {
+            start, end = 0;
+            output = "";
+            repeat_class.clear(); motif.clear();
+            strand.clear(); rlen.clear();
+        }
+        void report() {
+            string rclass_c, motif_c, strand_c = "";
+            for (int i=0; i<repeat_class.size(); i++) {
+                if (i == repeat_class.size() - 1) {
+                    rclass_c += repeat_class[i];
+                    strand_c  += strand[i];
+                    motif_c  += "(" + motif[i] + ")" + to_string(rlen[i]);
+                }
+                else {
+                    rclass_c += repeat_class[i] + "|";
+                    strand_c  += strand[i] + "|";
+                    motif_c  += "(" + motif[i] + ")" + to_string(rlen[i]) + "-(" + to_string(overlap[i]) + ")-";
+                }
+            }
+            // rclass_c += repeat_class[i]; rclass_c.substr(0, rclass_c.size()-1);
+            // motif_c = motif_c.substr(0, motif_c.size()-1);
+            // strand_c = strand_c.substr(0, strand_c.size()-1);
+            output = (seq_name + "\t" + to_string(start) + "\t" + to_string(end) +
+                     "\t" + rclass_c + "\t" + motif_c + "\t" + strand_c);
+        }
     };
 
     /*
