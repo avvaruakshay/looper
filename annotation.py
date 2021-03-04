@@ -109,12 +109,13 @@ def process_attrs(attribute, annotype):
     """
     
     attr_obj = {}
-    attributes = attribute.split(";")
+    attributes = attribute.strip().split(";")
     subdelim = " " if annotype=='GTF' else "="
     for a in attributes:
-        attr = a.split(subdelim)
-        attrName = attr[0].strip()
-        attr_obj[attrName] = attr[1].strip()
+        attr = a.strip().split(subdelim)
+        if len(attr) > 1:
+            attrName = attr[0].strip()
+            attr_obj[attrName] = attr[1].strip()
     return attr_obj
 
 
@@ -154,6 +155,8 @@ def process_annofile(annofile, annotype, gene_id):
 
     gene_obj = defaultdict(list)
     subgene_obj = defaultdict()
+    missed_gene_obj = dict()
+    gene_names = set()
     if (annofile.endswith('gz')):
         annohandle = gzip.open(annofile, 'rt')
     else:
@@ -183,11 +186,23 @@ def process_annofile(annofile, annotype, gene_id):
 
             if feature == 'gene':
                 gene_obj[seqname].append([gene_name, start, end, strand])
+                gene_names.add(gene_name)
             elif feature == 'exon':
+                if gene_name not in gene_names:
+                    if gene_name not in missed_gene_obj:
+                        missed_gene_obj[gene_name] = [seqname, gene_name, start, end, strand]
+                    else:
+                        if start < missed_gene_obj[gene_name][2]:
+                            missed_gene_obj[gene_name][2] = start
+                        if end > missed_gene_obj[gene_name][3]:
+                            missed_gene_obj[gene_name][3] = end
                 try:
                     subgene_obj[gene_name][feature].append([start, end, strand])
                 except KeyError:
                     subgene_obj[gene_name] = {feature: [[start, end, strand]]}
+    for gene_name in missed_gene_obj:
+        seqname = missed_gene_obj[gene_name][0] 
+        gene_obj[seqname].append(missed_gene_obj[gene_name][1:])
     for i in gene_obj:
         #sorting based on the start of the feature
         gene_obj[i] = sorted(gene_obj[i], key=itemgetter(1)) 

@@ -20,10 +20,12 @@ from __future__ import print_function, division
 # Generic/Built-in
 import os, argparse, sys
 from os.path import splitext
+from datetime import datetime
 
 # Owned
 from analyse import analyse_fasta, analyse_fastq
 from annotation import annotate_repeats
+from utils import rawcharCount, getGenomeInfo
 
 if sys.version_info[0] == 2:
     pass
@@ -89,7 +91,7 @@ def getArgs():
     annotation = parser.add_argument_group('Annotation arguments')
     annotation.add_argument('-g', '--annotate', metavar='<FILE>', help='Genic annotation input file for annotation, Both GFF and GTF can be processed. Use --anno-format to specify format.')
     annotation.add_argument('--anno-format', metavar='<STR>',default='GFF', type=str, help='Format of genic annotation file. Valid inputs: GFF, GTF. Default: GFF')
-    annotation.add_argument('--gene-key', metavar='<STR>', default='gene', type=str, help='Attribute key for geneId. The default identifier is "gene". Please check the annotation file and pick a robust gene identifier from the attribute column.')
+    annotation.add_argument('--gene-key', metavar='<STR>', default=None, type=str, help='Attribute key for geneId. The default identifier is "gene" for GFF and "gene_id" for GTF. Please check the annotation file and pick a robust gene identifier from the attribute column.')
     annotation.add_argument('--up-promoter', metavar='<INT>', type=int, default=1000, help='Upstream distance(bp) from TSS to be considered as promoter region. Default 1000')
     annotation.add_argument('--down-promoter', metavar='<INT>', type=int, default=1000, help='Downstream distance(bp) from TSS to be considered as promoter region. Default 1000')
 
@@ -100,13 +102,19 @@ def getArgs():
     
     if args.output is None:
         args.output = splitext(args.input)[0] + '_looper.tsv'
+
+    if args.gene_key is None:
+        if args.anno_format == 'GFF': args.gene_key = 'gene'
+        elif args.anno_format == 'GTF': args.gene_key = 'gene_id'
     
-    print('Printing output to:',args.output)
+    print('Printing output to:', args.output)
 
     return args
 
 def main():
     """Main function of looper"""
+
+    start_time = datetime.now()
 
     args = getArgs()
 
@@ -122,6 +130,7 @@ def main():
 
     divisor = []
     rem_shift = []
+    # Calculating all division variables based on the input parameters
     for i, a in enumerate(motif_checks): 
         d = cutoff // motif_checks[i]
         r = cutoff % motif_checks[i]
@@ -146,7 +155,12 @@ def main():
     template_file = ''
     filtered_file = ''
     if args.format == 'fasta':
-        template_file = './pylooper_fasta_template.cpp'
+        if args.input.endswith('gz'):
+            seq_count = rawcharCount(args.input, '>')
+            # gsize, GC = getGenomeInfo(args.input)
+            template_file = './pylooper_fasta_gzip_template.cpp'            
+        else:
+            template_file = './pylooper_fasta_template.cpp'
     elif args.format == 'fastq':
         if args.input.endswith('.gz'):
             template_file = './pylooper_fastq_gzip_template.cpp'
@@ -159,7 +173,7 @@ def main():
     with open(template_file) as fh:
         for line in fh:
             line = line.rstrip()
-            if '$' in line:
+            if line.strip() == '$ python_input;':
                 prefix = line[:line.find('$')]
                 line = '{prefix}uint cutoff = {cutoff};'.format(prefix=prefix, cutoff=cutoff)
                 line += '\n{prefix}uint m = {m};'.format(prefix=prefix, m=m)
@@ -170,6 +184,15 @@ def main():
                 line += '\n{prefix}{rem_shift_string};'.format(prefix=prefix, rem_shift_string=rem_shift_string)
                 line += '\n{prefix}{compound_string};'.format(prefix=prefix, compound_string=compound_string)
                 line += '\n{prefix}{overlap_d_string};'.format(prefix=prefix, overlap_d_string=overlap_d_string)
+            if line.strip() == '$ fasta_gzip;':
+                prefix = line[:line.find('$')]
+                line = '{prefix}string fin = "{filename}";'.format(prefix=prefix, filename=args.input)
+                line += '\n{prefix}out << "#FileName: " << fin << endl;'.format(prefix=prefix)
+                line += '{prefix}sequences = {seq_count};'.format(prefix=prefix, seq_count=seq_count)
+                
+                # line += '\n{prefix}out << "#GenomeSize: " << {gsize} << endl;'.format(prefix=prefix, gsize=gsize)
+                # line += '\n{prefix}out << "#GC: " << {GC} << endl;'.format(prefix=prefix, GC=GC)
+                # line += '\n{prefix}out << "#NumSeq: " << {seq_count} << endl;'.format(prefix=prefix, seq_count=seq_count)
             print(line, file=script)
     script.close()
     status = os.system('g++ ./pylooper.cpp -O3 -o pylooper')
@@ -177,6 +200,11 @@ def main():
         print('\n\nError compiling the cpp auxiliary code. Please check for proper installation of g++. ')
         sys.exit()
     
+    end_time = datetime.now()
+    total_time = end_time-start_time
+
+    print('\nProcessing time {total_time} secs'.format(total_time=round(total_time.total_seconds(), 2)))
+
     if args.format == 'fastq' and args.filter_reads:
         os.system('./pylooper  {input} {output} {filtered_file}'.format(input=args.input, output=args.output, filtered_file=filtered_file))
     elif args.format == 'fastq' and args.input.endswith('.gz'):
@@ -186,6 +214,8 @@ def main():
     elif args.format == 'fasta' and args.compound:
         comp_out = args.output + '.compound'
         os.system('./pylooper {input} {output} {comp_out}'.format(input=args.input, output=args.output, comp_out=comp_out))
+    elif args.format == 'fasta' and args.input.endswith('.gz'):
+        os.system('zcat {input} | ./pylooper {output}'.format(input=args.input, output=args.output))
     else:
         os.system('./pylooper {input} {output}'.format(input=args.input, output=args.output))
 

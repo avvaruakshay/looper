@@ -16,29 +16,23 @@ using namespace std::chrono;
 int main(int argc, char* argv[]) {
     ios_base::sync_with_stdio(false);
 
-    string fin = argv[1];
-    string fout = argv[2];
+    string fout = argv[1];
 
     uint64_t gsize = 0, GC = 0;
     int sequences = 0;
-    utils::count_seq(fin, sequences, gsize, GC); // total number of sequences
-    ifstream ins(fin);
-    utils::input_file_error(ins.good(), fin);
+    // utils::count_seq(sequences, gsize, GC); // total number of sequences
     ofstream out(fout);
 
     unordered_map<string, string> rclass_map;
-
-    out << "#FileName: " << fin << '\n';
-    out << "#GenomeSize: " << gsize << '\n';
-    out << "#GC: " << (float(GC) / float(gsize))*100 << '\n';
-    out << "#NumSeq: " << sequences << '\n';
+    $ fasta_gzip;
+    
     string line;
     utils::bitSeqWindow window;
     utils::compoundRepeat compound_repeat;
     
     $ python_input;
 
-    ofstream comp_out(argv[3]);
+    ofstream comp_out(argv[2]);
 
     cout << '\n' << "Searching for tandem repeats in " << fin << '\n';
     cout << "Min-motif: " << m << "\t Max-motif: " << M;
@@ -61,7 +55,7 @@ int main(int argc, char* argv[]) {
     uint64_t const NORM = ~(0ull) >> 2*(32-cutoff);
     
 
-    while(getline(ins, line)) {
+    while(getline(cin, line)) {
         if (line[0] == '>') {
             float progress = ((float) numseq) / ((float) sequences);
             if (start != -1) {
@@ -189,6 +183,6 @@ int main(int argc, char* argv[]) {
     utils::update_progress_bar(start_time, numseq, sequences);
     cout << "Total time taken: " << total_time << " secs" << endl;
 
-    ins.close(); out.close();
+    out.close();
     return EXIT_SUCCESS;
 }

@@ -116,6 +116,34 @@ def getGC(basesCounter):
     return GC
 
 
+def getGenomeInfo(filename):
+    """
+    Description
+    -----------
+    Calculate GC percentage of the genome.
+
+    Parameters
+    ----------
+    filename : Name of the input file.
+
+    Returns
+    -------
+    LIST, [Genome size, GC percentage value]
+    """
+    bases = {'A': 0, 'C': 0, 'G': 0, 'T': 0, 'N': 0}
+    if filename.endswith('gz'): fh = gzip.open(filename, 'rt')
+    else: fh = open(filename, 'r')
+    for line in fh:
+        if not line.strip().startswith('>'):
+            for nuc in bases: bases[nuc] += line.upper().count(nuc)
+    gsize = sum(bases.values())
+    try:
+        GC = (float(bases['G'] + bases['C'])/(gsize-bases['N']))*100
+    except KeyError:
+        GC = (float(bases['G'] + bases['C'])/gsize)*100
+    return [gsize, GC]
+
+
 def rev_comp(motif):
     """
     Description
