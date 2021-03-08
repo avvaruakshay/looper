@@ -212,7 +212,7 @@ def main():
         if args.analyse:analyse_flag = 1
         comp_out = ''
         if args.compound:
-            comp_out = args.output + '.compound'
+            comp_out = '.'.join(args.output.split('.')[:-1]) + '.compound.' + args.output.split('.')[-1]
         if args.input.endswith('.gz'):
             os.system(
                 'zcat {input} | {current_dir}/pylooper {output} {analyse_flag} {comp_out}'

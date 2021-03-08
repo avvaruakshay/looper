@@ -60,7 +60,7 @@ namespace utils {
                 }
                 else {
                     strand_c  += strand[i] + "|";
-                    motif_c  += "(" + motif[i] + ")" + to_string(rlen[i]) + "-(" + to_string(overlap[i]) + ")-";
+                    motif_c  += "(" + motif[i] + ")" + to_string(rlen[i]) + "|D" + to_string(overlap[i]) + "|";
                 }
             }
             rclass_c += "(" + prev_rclass + ")" + to_string(rclass_count);
