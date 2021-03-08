@@ -16,29 +16,23 @@ using namespace std::chrono;
 int main(int argc, char* argv[]) {
     ios_base::sync_with_stdio(false);
 
-    string fin = argv[1];
-    string fout = argv[2];
+    string fout = argv[1];
 
-    uint64_t gsize = 0, GC = 0;
+    uint64_t gsize = 0, GC = 0, N_bases = 0;
     int sequences = 0;
-    utils::count_seq(fin, sequences, gsize, GC); // total number of sequences
-    ifstream ins(fin);
-    utils::input_file_error(ins.good(), fin);
+    // utils::count_seq(sequences, gsize, GC); // total number of sequences
     ofstream out(fout);
 
     unordered_map<string, string> rclass_map;
-
-    out << "#FileName: " << fin << '\n';
-    out << "#GenomeSize: " << gsize << '\n';
-    out << "#GC: " << (float(GC) / float(gsize))*100 << '\n';
-    out << "#NumSeq: " << sequences << '\n';
+    $ fasta_gzip;
+    
     string line;
     utils::bitSeqWindow window;
     utils::compoundRepeat compound_repeat;
     
     $ python_input;
 
-    ofstream comp_out(argv[3]);
+    ofstream comp_out(argv[2]);
 
     cout << '\n' << "Searching for tandem repeats in " << fin << '\n';
     cout << "Min-motif: " << m << "\t Max-motif: " << M;
@@ -47,7 +41,7 @@ int main(int argc, char* argv[]) {
     uint64_t start_time = duration_cast<milliseconds>(
         system_clock::now().time_since_epoch()
     ).count();
-
+    
 
     // integer tracking the start of the repeat
     // -1 indicates no repeat is found 
@@ -59,9 +53,10 @@ int main(int argc, char* argv[]) {
 
     // NORM is require to fetch the current window sequence
     uint64_t const NORM = ~(0ull) >> 2*(32-cutoff);
-    
 
-    while(getline(ins, line)) {
+    for (int i=0; i<2000; i++) { out << " "; }
+
+    while(getline(cin, line)) {
         if (line[0] == '>') {
             float progress = ((float) numseq) / ((float) sequences);
             if (start != -1) {
@@ -86,12 +81,14 @@ int main(int argc, char* argv[]) {
         }
         else {
             for(const auto c: line) {
+                gsize += 1;
                 switch(c) {
                     case 'a': case 'A': break;
-                    case 'c': case 'C': window.seq |= 1ull; break;
-                    case 'g': case 'G': window.seq |= 2ull; break;
+                    case 'c': case 'C': window.seq |= 1ull; GC += 1; break;
+                    case 'g': case 'G': window.seq |= 2ull; GC += 1; break;
                     case 't': case 'T': window.seq |= 3ull; break;
                     case 'N': case 'n': 
+                        N_bases += 1;
                         window.seq = 0; window.cutoff = -1;
                         if (start != -1) {
                             end = window.count; rlen = end - start;
@@ -182,13 +179,22 @@ int main(int argc, char* argv[]) {
             << strand << "\t" << rlen/atomicity << "\t" << motif << '\n';
     }
 
+    out.seekp(0);
+    float gc_percent = (float(GC) / float(gsize))*100;
+    out << "#FileName: " << fin << '\n';
+    out << "#GenomeSize: " << gsize << '\n';
+    out << "#GC: " << gc_percent << '\n';
+    out << "#NumSeq: " << sequences << '\n';
+
+    int total_chars = 43 + fin.length() + to_string(gsize).length() + to_string(gc_percent).length() + to_string(sequences).length();
+    for (int i=0; i<2000-(total_chars); i++) { out << '\b'; }
+
     uint64_t end_time = duration_cast<milliseconds>(
         system_clock::now().time_since_epoch()
     ).count();
     float total_time = float(end_time - start_time)/1000.0;
     utils::update_progress_bar(start_time, numseq, sequences);
-    cout << "Total time taken: " << total_time << " secs" << endl;
 
-    ins.close(); out.close();
+    out.close();
     return EXIT_SUCCESS;
 }

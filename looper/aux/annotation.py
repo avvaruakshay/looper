@@ -16,7 +16,7 @@ import sys, gzip, argparse
 from os.path import splitext
 
 # Owned
-from utils import rawcharCount
+from .utils import rawcharCount
 
 
 """
@@ -255,7 +255,7 @@ def annotate_repeats(args):
     total_regions = rawcharCount(rep_file, '\n')
     with open(rep_file) as bed:
         prev_seqname = "Initialise" # Initialise for checking the prev_seqname
-        min_start_index = 0
+        min_start_index, min_index = [0,0]
         for line in tqdm(bed, total=total_regions):
             # Object for the output entries to be appended --------------------
             Annotations = {'Genic': [], 'Exon': [], 'Intron': []}
@@ -269,6 +269,7 @@ def annotate_repeats(args):
                 # starts from the first gene on the sequence.
                 if seqname != prev_seqname:
                     min_start_index = 0
+                    min_index = 0
                 prev_seqname = seqname
                 S1 = int(fields[1])     # start of the region
                 E1 = int(fields[2])     # end of the region

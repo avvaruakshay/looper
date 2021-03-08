@@ -5,3 +5,8 @@ pylooper.cpp
 pylooper
 data/*
 analysis_template/*
+looper_test/*
+dist/*
+build/*
+looper_ssr.egg-info/*
+api_token

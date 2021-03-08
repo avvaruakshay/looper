@@ -23,9 +23,14 @@ from os.path import splitext
 from datetime import datetime
 
 # Owned
-from analyse import analyse_fasta, analyse_fastq
-from annotation import annotate_repeats
-from utils import rawcharCount, getGenomeInfo
+try:
+    from .aux.analyse import analyse_fasta, analyse_fastq
+    from .aux.annotation import annotate_repeats
+    from .aux.utils import rawcharCount, getGenomeInfo
+except:
+    from aux.analyse import analyse_fasta, analyse_fastq
+    from aux.annotation import annotate_repeats
+    from aux.utils import rawcharCount, getGenomeInfo
 
 if sys.version_info[0] == 2:
     pass
@@ -115,6 +120,9 @@ def main():
     """Main function of looper"""
 
     start_time = datetime.now()
+    current_dir = os.path.dirname(__file__)
+    current_dir = '/'.join(os.path.abspath(__file__).split('/')[:-1])
+    print('Current directory is ', current_dir)
 
     args = getArgs()
 
@@ -157,19 +165,18 @@ def main():
     if args.format == 'fasta':
         if args.input.endswith('gz'):
             seq_count = rawcharCount(args.input, '>')
-            # gsize, GC = getGenomeInfo(args.input)
-            template_file = './pylooper_fasta_gzip_template.cpp'            
+            template_file = '{current_dir}/templates/pylooper_fasta_gzip_template.cpp'.format(current_dir=current_dir)
         else:
-            template_file = './pylooper_fasta_template.cpp'
+            template_file = '{current_dir}/templates/pylooper_fasta_template.cpp'.format(current_dir=current_dir)
     elif args.format == 'fastq':
         if args.input.endswith('.gz'):
-            template_file = './pylooper_fastq_gzip_template.cpp'
+            template_file = '{current_dir}/templates/pylooper_fastq_gzip_template.cpp'.format(current_dir=current_dir)
         else:
-            template_file = './pylooper_fastq_template.cpp'
+            template_file = '{current_dir}/templates/pylooper_fastq_template.cpp'.format(current_dir=current_dir)
         if args.filter_reads: 
             filtered_file = splitext(args.input)[0] + '_looper.filtered.fastq'
 
-    script = open('./pylooper.cpp', 'w')
+    script = open('{current_dir}/pylooper.cpp'.format(current_dir=current_dir), 'w')
     with open(template_file) as fh:
         for line in fh:
             line = line.rstrip()
@@ -187,15 +194,10 @@ def main():
             if line.strip() == '$ fasta_gzip;':
                 prefix = line[:line.find('$')]
                 line = '{prefix}string fin = "{filename}";'.format(prefix=prefix, filename=args.input)
-                line += '\n{prefix}out << "#FileName: " << fin << endl;'.format(prefix=prefix)
                 line += '{prefix}sequences = {seq_count};'.format(prefix=prefix, seq_count=seq_count)
-                
-                # line += '\n{prefix}out << "#GenomeSize: " << {gsize} << endl;'.format(prefix=prefix, gsize=gsize)
-                # line += '\n{prefix}out << "#GC: " << {GC} << endl;'.format(prefix=prefix, GC=GC)
-                # line += '\n{prefix}out << "#NumSeq: " << {seq_count} << endl;'.format(prefix=prefix, seq_count=seq_count)
             print(line, file=script)
     script.close()
-    status = os.system('g++ ./pylooper.cpp -O3 -o pylooper')
+    status = os.system('g++ {current_dir}/pylooper.cpp -O3 -o {current_dir}/pylooper'.format(current_dir=current_dir))
     if sys.platform.startswith('linux') and status != 0:
         print('\n\nError compiling the cpp auxiliary code. Please check for proper installation of g++. ')
         sys.exit()
@@ -203,27 +205,32 @@ def main():
     end_time = datetime.now()
     total_time = end_time-start_time
 
-    print('\nProcessing time {total_time} secs'.format(total_time=round(total_time.total_seconds(), 2)))
+    print('\nProcessing time: {total_time} secs'.format(total_time=round(total_time.total_seconds(), 2)))
 
     if args.format == 'fastq' and args.filter_reads:
-        os.system('./pylooper  {input} {output} {filtered_file}'.format(input=args.input, output=args.output, filtered_file=filtered_file))
+        os.system('{current_dir}/pylooper  {input} {output} {filtered_file}'.format(current_dir=current_dir, input=args.input, output=args.output, filtered_file=filtered_file))
     elif args.format == 'fastq' and args.input.endswith('.gz'):
-        os.system('zcat {input} | ./pylooper {output} '.format(input=args.input, output=args.output))
+        os.system('zcat {input} | {current_dir}/pylooper {output} '.format(input=args.input, current_dir=current_dir, output=args.output))
     elif args.format == 'fastq' and args.input.endswith('.gz') and args.filter_reads:
-        os.system('zcat {input} {filtered_file} | ./pylooper {output} '.format(input=args.input, output=args.output, filtered_file=filtered_file))
+        os.system('zcat {input} {filtered_file} | {current_dir}/pylooper {output} '.format(input=args.input, current_dir=current_dir, output=args.output, filtered_file=filtered_file))
     elif args.format == 'fasta' and args.compound:
         comp_out = args.output + '.compound'
-        os.system('./pylooper {input} {output} {comp_out}'.format(input=args.input, output=args.output, comp_out=comp_out))
+        os.system('{current_dir}/pylooper {input} {output} {comp_out}'.format(current_dir=current_dir, input=args.input, output=args.output, comp_out=comp_out))
     elif args.format == 'fasta' and args.input.endswith('.gz'):
-        os.system('zcat {input} | ./pylooper {output}'.format(input=args.input, output=args.output))
+        os.system('zcat {input} | {current_dir}/pylooper {output}'.format(input=args.input, current_dir=current_dir, output=args.output))
     else:
-        os.system('./pylooper {input} {output}'.format(input=args.input, output=args.output))
+        os.system('{current_dir}/pylooper {input} {output}'.format(current_dir=current_dir, input=args.input, output=args.output))
 
     if args.annotate: annotate_repeats(args)
 
     if args.analyse:
         if args.format == 'fasta': analyse_fasta(args)
         elif args.format == 'fastq': analyse_fastq(args)
+    
+    end_time = datetime.now()
+    total_time = end_time-start_time    
+    print('\nTotal time taken: {total_time}'.format(total_time=total_time))
+
 
 if __name__ == "__main__":
     main()

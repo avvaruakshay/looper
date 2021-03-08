@@ -7,10 +7,9 @@ from __future__ import print_function, division
 import sys, os, json
 from collections import Counter, defaultdict
 import numpy as np
-from pprint import pprint
 
 # Owned
-from utils import kmer_names, get_cycles, build_cycVariations, rev_comp
+from .utils import kmer_names, get_cycles, build_cycVariations, rev_comp
 
 def analyse_fasta(args):
     """Generates info JSON """
@@ -208,16 +207,16 @@ def writetoHTML(html_file, defaultInfo, repeat_options, fformat):
     html_handle = open(html_file, 'w')
     current_dir = os.path.dirname(__file__)
     
-    template = open('%s/lib/looper_%s_template.html' %(current_dir, fformat), 'r').read()
-    fontawesome_js = open('%s/lib/src/all.js' %(current_dir), 'r').read()
-    multiselect_css = open('%s/lib/styles/multi-select.min.css' %(current_dir), 'r').read()
-    main_css = open('%s/lib/styles/main.css' %(current_dir), 'r').read()
+    template = open('%s/../lib/looper_%s_template.html' %(current_dir, fformat), 'r').read()
+    fontawesome_js = open('%s/../lib/src/all.js' %(current_dir), 'r').read()
+    multiselect_css = open('%s/../lib/styles/multi-select.min.css' %(current_dir), 'r').read()
+    main_css = open('%s/../lib/styles/main.css' %(current_dir), 'r').read()
 
-    jquery_js = open("%s/lib/src/jquery-3.5.0.min.js" %(current_dir), "r").read()
-    multiselect_js = open('%s/lib/src/jquery.multi-select.min.js' %(current_dir), 'r').read()
-    echarts_js = open('%s/lib/src/echarts_cp1252.min.js' %(current_dir), 'r').read()
-    main_js = open('%s/lib/src/main_%s.js' %(current_dir, fformat), 'r').read()
-    tables_js = open('%s/lib/src/tables_%s.js' %(current_dir, fformat), 'r').read()
+    jquery_js = open("%s/../lib/src/jquery-3.5.0.min.js" %(current_dir), "r").read()
+    multiselect_js = open('%s/../lib/src/jquery.multi-select.min.js' %(current_dir), 'r').read()
+    echarts_js = open('%s/../lib/src/echarts_cp1252.min.js' %(current_dir), 'r').read()
+    main_js = open('%s/../lib/src/main_%s.js' %(current_dir, fformat), 'r').read()
+    tables_js = open('%s/../lib/src/tables_%s.js' %(current_dir, fformat), 'r').read()
 
     template = template.format(
         fontawesome_js = fontawesome_js,
