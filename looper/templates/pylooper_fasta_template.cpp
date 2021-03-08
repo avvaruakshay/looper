@@ -59,16 +59,20 @@ int main(int argc, char* argv[]) {
             if (start != -1) {
                 end = window.count; rlen = end - start;
                 if (compound) {
+                    compound_repeat.end = end;
                     if (compound_repeat.motif.size() > 1) {
                         compound_repeat.report();
                         comp_out << compound_repeat.output << '\n';
+                        if (compound_repeat.start > compound_repeat.end) {
+                            cout << "\n\n At the switch of the sequence \n\n";
+                        }
                     }
-                    compound_repeat.reset();
                 }
                 out << seq_name << "\t" << start << "\t" << end << "\t" \
                     << repeat_class << "\t" << rlen << "\t" \ 
                     << strand << "\t" << rlen/atomicity << "\t" << motif << '\n';
             }
+            compound_repeat.reset();
             seq_name = line.substr(1, line.find(" ")-1);
             // cout << seq_name << endl;
             window.reset(); start = -1;
@@ -87,10 +91,18 @@ int main(int argc, char* argv[]) {
                         window.seq = 0; window.cutoff = -1;
                         if (start != -1) {
                             end = window.count; rlen = end - start;
+                            if (compound) { 
+                                compound_repeat.end = end;
+                                if (compound_repeat.motif.size() > 1) {
+                                    compound_repeat.report();
+                                    comp_out << compound_repeat.output << '\n';
+                                }
+                            }
                             out << seq_name << "\t" << start << "\t" << end << "\t" \
                                 << repeat_class << "\t" << rlen << "\t" \ 
                                 << strand << "\t" << rlen/atomicity << "\t" << motif << '\n';
                         }
+                        compound_repeat.reset();
                         start = -1;
                         break;
                     default: continue;
@@ -164,12 +176,13 @@ int main(int argc, char* argv[]) {
     if (start != -1) {
         end = window.count; rlen = end - start;
         if (compound) {
+            compound_repeat.end = end;
             if (compound_repeat.motif.size() > 1) {
                 compound_repeat.report();
                 comp_out << compound_repeat.output << '\n';
             }
-            compound_repeat.reset();
         }
+        compound_repeat.reset();
         out << seq_name << "\t" << start << "\t" << end << "\t" \
             << repeat_class << "\t" << rlen << "\t" \ 
             << strand << "\t" << rlen/atomicity << "\t" << motif << '\n';
