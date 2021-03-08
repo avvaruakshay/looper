@@ -19,20 +19,19 @@ int main(int argc, char* argv[]) {
     string fout = argv[1];
 
     uint64_t gsize = 0, GC = 0, N_bases = 0;
-    int sequences = 0;
-    // utils::count_seq(sequences, gsize, GC); // total number of sequences
     ofstream out(fout);
 
     unordered_map<string, string> rclass_map;
-    $ fasta_gzip;
     
     string line;
     utils::bitSeqWindow window;
     utils::compoundRepeat compound_repeat;
     
-    $ python_input;
-
     ofstream comp_out(argv[2]);
+    
+    $ fasta_gzip;
+
+    $ python_input;
 
     cout << '\n' << "Searching for tandem repeats in " << fin << '\n';
     cout << "Min-motif: " << m << "\t Max-motif: " << M;
@@ -178,16 +177,15 @@ int main(int argc, char* argv[]) {
             << repeat_class << "\t" << rlen << "\t" \ 
             << strand << "\t" << rlen/atomicity << "\t" << motif << '\n';
     }
-
-    out.seekp(0);
-    float gc_percent = (float(GC) / float(gsize))*100;
-    out << "#FileName: " << fin << '\n';
-    out << "#GenomeSize: " << gsize << '\n';
-    out << "#GC: " << gc_percent << '\n';
-    out << "#NumSeq: " << sequences << '\n';
-
-    int total_chars = 43 + fin.length() + to_string(gsize).length() + to_string(gc_percent).length() + to_string(sequences).length();
-    for (int i=0; i<2000-(total_chars); i++) { out << '\b'; }
+    
+    string analyse_flag = argv[2];
+    if (analyse_flag == "1") {
+        float gc_percent = (float(GC) / float(gsize))*100;
+        out << "#FileName: " << fin << '\n';
+        out << "#GenomeSize: " << gsize << '\n';
+        out << "#GC: " << gc_percent << '\n';
+        out << "#NumSeq: " << sequences << '\n';
+    }
 
     uint64_t end_time = duration_cast<milliseconds>(
         system_clock::now().time_since_epoch()

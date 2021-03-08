@@ -20,25 +20,18 @@ int main(int argc, char* argv[]) {
     string fout = argv[2];
 
     uint64_t gsize = 0, GC = 0;
-    int sequences = 0;
-    utils::count_seq(fin, sequences, gsize, GC); // total number of sequences
     ifstream ins(fin);
     utils::input_file_error(ins.good(), fin);
     ofstream out(fout);
 
     unordered_map<string, string> rclass_map;
-
-    out << "#FileName: " << fin << '\n';
-    out << "#GenomeSize: " << gsize << '\n';
-    out << "#GC: " << (float(GC) / float(gsize))*100 << '\n';
-    out << "#NumSeq: " << sequences << '\n';
     string line;
     utils::bitSeqWindow window;
     utils::compoundRepeat compound_repeat;
     
-    $ python_input;
+    ofstream comp_out(argv[4]);
 
-    ofstream comp_out(argv[3]);
+    $ python_input;
 
     cout << '\n' << "Searching for tandem repeats in " << fin << '\n';
     cout << "Min-motif: " << m << "\t Max-motif: " << M;
@@ -59,7 +52,6 @@ int main(int argc, char* argv[]) {
 
     // NORM is require to fetch the current window sequence
     uint64_t const NORM = ~(0ull) >> 2*(32-cutoff);
-    
 
     while(getline(ins, line)) {
         if (line[0] == '>') {
@@ -88,8 +80,8 @@ int main(int argc, char* argv[]) {
             for(const auto c: line) {
                 switch(c) {
                     case 'a': case 'A': break;
-                    case 'c': case 'C': window.seq |= 1ull; break;
-                    case 'g': case 'G': window.seq |= 2ull; break;
+                    case 'c': case 'C': window.seq |= 1ull; GC += 1; break;
+                    case 'g': case 'G': window.seq |= 2ull; GC += 1; break;
                     case 't': case 'T': window.seq |= 3ull; break;
                     case 'N': case 'n': 
                         window.seq = 0; window.cutoff = -1;
@@ -103,6 +95,7 @@ int main(int argc, char* argv[]) {
                         break;
                     default: continue;
                 }
+                gsize += 1;
                 window.count += 1;
                 window.cutoff += 1;
                 window.seq &= NORM;
@@ -180,6 +173,15 @@ int main(int argc, char* argv[]) {
         out << seq_name << "\t" << start << "\t" << end << "\t" \
             << repeat_class << "\t" << rlen << "\t" \ 
             << strand << "\t" << rlen/atomicity << "\t" << motif << '\n';
+    }
+    
+    string analyse_flag = argv[3];
+    if (analyse_flag == "1") {
+        float gc_percent = (float(GC) / float(gsize))*100;
+        out << "#FileName: " << fin << '\n';
+        out << "#GenomeSize: " << gsize << '\n';
+        out << "#GC: " << gc_percent << '\n';
+        out << "#NumSeq: " << sequences << '\n';
     }
 
     uint64_t end_time = duration_cast<milliseconds>(

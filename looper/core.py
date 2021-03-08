@@ -122,7 +122,6 @@ def main():
     start_time = datetime.now()
     current_dir = os.path.dirname(__file__)
     current_dir = '/'.join(os.path.abspath(__file__).split('/')[:-1])
-    print('Current directory is ', current_dir)
 
     args = getArgs()
 
@@ -162,9 +161,10 @@ def main():
 
     template_file = ''
     filtered_file = ''
+    seq_count = 0
     if args.format == 'fasta':
+        seq_count = rawcharCount(args.input, '>')
         if args.input.endswith('gz'):
-            seq_count = rawcharCount(args.input, '>')
             template_file = '{current_dir}/templates/pylooper_fasta_gzip_template.cpp'.format(current_dir=current_dir)
         else:
             template_file = '{current_dir}/templates/pylooper_fasta_template.cpp'.format(current_dir=current_dir)
@@ -191,10 +191,10 @@ def main():
                 line += '\n{prefix}{rem_shift_string};'.format(prefix=prefix, rem_shift_string=rem_shift_string)
                 line += '\n{prefix}{compound_string};'.format(prefix=prefix, compound_string=compound_string)
                 line += '\n{prefix}{overlap_d_string};'.format(prefix=prefix, overlap_d_string=overlap_d_string)
+                line += '\n{prefix}int sequences = {seq_count};'.format(prefix=prefix, seq_count=seq_count)
             if line.strip() == '$ fasta_gzip;':
                 prefix = line[:line.find('$')]
                 line = '{prefix}string fin = "{filename}";'.format(prefix=prefix, filename=args.input)
-                line += '{prefix}sequences = {seq_count};'.format(prefix=prefix, seq_count=seq_count)
             print(line, file=script)
     script.close()
     status = os.system('g++ {current_dir}/pylooper.cpp -O3 -o {current_dir}/pylooper'.format(current_dir=current_dir))
@@ -207,21 +207,48 @@ def main():
 
     print('\nProcessing time: {total_time} secs'.format(total_time=round(total_time.total_seconds(), 2)))
 
-    if args.format == 'fastq' and args.filter_reads:
-        os.system('{current_dir}/pylooper  {input} {output} {filtered_file}'.format(current_dir=current_dir, input=args.input, output=args.output, filtered_file=filtered_file))
-    elif args.format == 'fastq' and args.input.endswith('.gz'):
-        os.system('zcat {input} | {current_dir}/pylooper {output} '.format(input=args.input, current_dir=current_dir, output=args.output))
-    elif args.format == 'fastq' and args.input.endswith('.gz') and args.filter_reads:
-        os.system('zcat {input} {filtered_file} | {current_dir}/pylooper {output} '.format(input=args.input, current_dir=current_dir, output=args.output, filtered_file=filtered_file))
-    elif args.format == 'fasta' and args.compound:
-        comp_out = args.output + '.compound'
-        os.system('{current_dir}/pylooper {input} {output} {comp_out}'.format(current_dir=current_dir, input=args.input, output=args.output, comp_out=comp_out))
-    elif args.format == 'fasta' and args.input.endswith('.gz'):
-        os.system('zcat {input} | {current_dir}/pylooper {output}'.format(input=args.input, current_dir=current_dir, output=args.output))
-    else:
-        os.system('{current_dir}/pylooper {input} {output}'.format(current_dir=current_dir, input=args.input, output=args.output))
+    if args.format == 'fasta':
+        analyse_flag = 0
+        if args.analyse:analyse_flag = 1
+        comp_out = ''
+        if args.compound:
+            comp_out = args.output + '.compound'
+        if args.input.endswith('.gz'):
+            os.system(
+                'zcat {input} | {current_dir}/pylooper {output} {analyse_flag} {comp_out}'
+                    .format(
+                        input=args.input,
+                        current_dir=current_dir,
+                        output=args.output,
+                        analyse_flag=analyse_flag,
+                        comp_out=comp_out
+                    )
+            )
+        else:
+            os.system(
+                '{current_dir}/pylooper {input} {output} {analyse_flag} {comp_out}'
+                    .format(
+                        current_dir=current_dir,
+                        input=args.input,
+                        output=args.output,
+                        analyse_flag=analyse_flag,
+                        comp_out=comp_out
+                    )
+            )
 
-    if args.annotate: annotate_repeats(args)
+        if args.annotate: annotate_repeats(args)
+    
+    elif args.format == 'fastq':
+        if args.input.endswith('.gz') and args.filter_reads:
+            os.system('zcat {input} {filtered_file} | {current_dir}/pylooper {output} '.format(input=args.input, current_dir=current_dir, output=args.output, filtered_file=filtered_file))
+        elif args.input.endswith('.gz'):
+            os.system('zcat {input} | {current_dir}/pylooper {output} '.format(input=args.input, current_dir=current_dir, output=args.output))
+        elif args.filter_reads:
+            os.system('{current_dir}/pylooper  {input} {output} {filtered_file}'.format(current_dir=current_dir, input=args.input, output=args.output, filtered_file=filtered_file))
+        else:
+            os.system('{current_dir}/pylooper {input} {output}'.format(current_dir=current_dir, input=args.input, output=args.output))
+
+
 
     if args.analyse:
         if args.format == 'fasta': analyse_fasta(args)
