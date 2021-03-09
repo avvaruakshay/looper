@@ -44,7 +44,7 @@ int main(int argc, char* argv[]) {
 
     // integer tracking the start of the repeat
     // -1 indicates no repeat is found 
-    int start = -1; 
+    int64_t start = -1; 
     int end, rlen, atomicity;
     int window_repeat_check = 0;  // bool tracking if the window sequence is a repeat
     int numseq = 0;    // current sequence number
@@ -63,9 +63,6 @@ int main(int argc, char* argv[]) {
                     if (compound_repeat.motif.size() > 1) {
                         compound_repeat.report();
                         comp_out << compound_repeat.output << '\n';
-                        if (compound_repeat.start > compound_repeat.end) {
-                            cout << "\n\n At the switch of the sequence \n\n";
-                        }
                     }
                 }
                 out << seq_name << "\t" << start << "\t" << end << "\t" \

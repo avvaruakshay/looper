@@ -30,15 +30,15 @@ namespace utils {
     struct compoundRepeat {
         string output = "";
         string seq_name;
-        uint start, end;
+        int64_t start, end = -10000000000;
         vector<string> repeat_class, motif, strand;
         vector<int> overlap, rlen;
         compoundRepeat() { reset(); }
         void reset() {
-            start, end = 0;
+            start, end = -10000000000;
             output = "";
             repeat_class.clear(); motif.clear();
-            strand.clear(); rlen.clear();
+            strand.clear(); rlen.clear(); overlap.clear();
         }
         void report() {
             string rclass_c, motif_c, strand_c = "";
