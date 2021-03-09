@@ -10,6 +10,16 @@ genomic sequences which have functional and evolutionary significance.
 
 Looper is scripted in C++. 
 
+### Working principle
+
+Looper captures a mathematical property exhibited by binary number representations of DNA tandem repeats. In the binary number or the 2-bit format of DNA sequences, nucleotides are represented by 4 different combinations of 2 binary digits (bits). The binary number representations of DNA tandem repeats conform to a unique division rule. Looper scans the genome in windows, converts each window sequence to a binary number and checks if the number qualifies the division rule. The detailed explanation of the algorithm is below and an overview of the method is depicted in the figure below.
+
+
+
+<img src="./looper/lib/4097_figure1_v2.jpg" alt="explanation-figure"/>
+A) 2-bit representation for each nucleotide. B) Example repeat sequence of ACT motif with 2 complete units and a partial suffix of 2 bases. C) Binary representation of the repeat sequence generates a number denoted by S. A divisor (D) is built based on the length of the repeat, the motif and the partial suffix. The division of S with D yields a quotient which is equal to binary representation of the motif and the remainder equals binary representation of partial suffix.
+
+
 ### Usage
 
 The help message and available options can be accessed using
