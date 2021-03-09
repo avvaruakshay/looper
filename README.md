@@ -3,7 +3,7 @@
 [![Build](https://img.shields.io/badge/Build-passing-brightgreen.svg)]()
 [![License](https://img.shields.io/badge/Licence-MIT-blue.svg)]()
 
-<img src="./lib/looper_logo.jpg" alt="logo" height="80"/>
+<img src="./looper/lib/looper_logo.jpg" alt="logo" height="80"/>
 
 Looper is a DNA tandem repeat identification tool. Tandem repeats are important 
 genomic sequences which have functional and evolutionary significance.
