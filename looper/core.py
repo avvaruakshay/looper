@@ -24,13 +24,13 @@ from datetime import datetime
 
 # Owned
 try:
-    from .aux.analyse import analyse_fasta, analyse_fastq
-    from .aux.annotation import annotate_repeats
-    from .aux.utils import rawcharCount, getGenomeInfo
+    from .utils.analyse import analyse_fasta, analyse_fastq
+    from .utils.annotation import annotate_repeats
+    from .utils.utils import rawcharCount, getGenomeInfo
 except:
-    from aux.analyse import analyse_fasta, analyse_fastq
-    from aux.annotation import annotate_repeats
-    from aux.utils import rawcharCount, getGenomeInfo
+    from utils.analyse import analyse_fasta, analyse_fastq
+    from utils.annotation import annotate_repeats
+    from utils.utils import rawcharCount, getGenomeInfo
 
 if sys.version_info[0] == 2:
     pass
