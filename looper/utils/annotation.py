@@ -16,8 +16,10 @@ import sys, gzip, argparse
 from os.path import splitext
 
 # Owned
-from .utils import rawcharCount
-
+try:
+    from .seq_utils import rawcharCount
+except:
+    from seq_utils import rawcharCount
 
 """
     CAUTION: Works currently for only sorted bed files.

@@ -9,7 +9,11 @@ from collections import Counter, defaultdict
 import numpy as np
 
 # Owned
-from .utils import kmer_names, get_cycles, build_cycVariations, rev_comp
+try:
+    from .seq_utils import kmer_names, get_cycles, build_cycVariations, rev_comp
+except:
+    from seq_utils import kmer_names, get_cycles, build_cycVariations, rev_comp
+
 
 def analyse_fasta(args):
     """Generates info JSON """

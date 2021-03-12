@@ -26,11 +26,11 @@ from datetime import datetime
 try:
     from .utils.analyse import analyse_fasta, analyse_fastq
     from .utils.annotation import annotate_repeats
-    from .utils.utils import rawcharCount, getGenomeInfo
+    from .utils.seq_utils import rawcharCount, getGenomeInfo
 except:
     from utils.analyse import analyse_fasta, analyse_fastq
     from utils.annotation import annotate_repeats
-    from utils.utils import rawcharCount, getGenomeInfo
+    from utils.seq_utils import rawcharCount, getGenomeInfo
 
 if sys.version_info[0] == 2:
     pass
