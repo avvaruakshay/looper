@@ -17,6 +17,60 @@ using namespace chrono;
 
 namespace utils {
 
+
+    /* Data structure tracking the window sequence */
+    struct bitSeqWindow {
+        long long int seq = 0, count = 0;
+        int cutoff = 0;
+        bitSeqWindow() { reset(); }
+        void reset() { seq = count = cutoff = 0;}
+    };
+
+
+    /* Data structure to store compound repeat */
+    struct compoundRepeat {
+        string output = "";
+        string seq_name;
+        long long int start, end = -10000000000;
+        vector<string> repeat_class, motif, strand;
+        vector<int> overlap, rlen;
+        compoundRepeat() { reset(); }
+        void reset() {
+            start, end = -10000000000;
+            output = "";
+            repeat_class.clear(); motif.clear();
+            strand.clear(); rlen.clear(); overlap.clear();
+        }
+        void report() {
+            string rclass_c, motif_c, strand_c = "";
+            int rclass_count = 0;
+            string prev_rclass = repeat_class[0];
+            for (int i=0; i<repeat_class.size(); i++) {
+                if (repeat_class[i] == prev_rclass) {
+                    rclass_count += 1;
+                } else {
+                    rclass_c += "(" + prev_rclass + ")" + to_string(rclass_count);
+                    prev_rclass = repeat_class[i];
+                    rclass_count = 1;
+                }
+                prev_rclass = repeat_class[i];
+
+                if (i == repeat_class.size() - 1) {
+                    strand_c  += strand[i];
+                    motif_c  += "(" + motif[i] + ")" + to_string(rlen[i]);
+                }
+                else {
+                    strand_c  += strand[i] + "|";
+                    motif_c  += "(" + motif[i] + ")" + to_string(rlen[i]) + "|D" + to_string(overlap[i]) + "|";
+                }
+            }
+            rclass_c += "(" + prev_rclass + ")" + to_string(rclass_count);
+            output = (seq_name + "\t" + to_string(start) + "\t" + to_string(end) +
+                     "\t" + rclass_c + "\t" + to_string(end-start) + "\t" + strand_c + "\t" + motif_c);
+        }
+    };
+
+
     /*
      *  Check for length cutoff
      *  @param M Maximum motif size
@@ -87,7 +141,9 @@ namespace utils {
         Parse command line arguments.
     */
     void parse_arguments(int argc, char* argv[], string &fin, string &fout,\
-                        unsigned int &m, unsigned int &M, unsigned int &cutoff) {
+                        unsigned int &m, unsigned int &M, unsigned int &cutoff,\
+                        int &compound, int &overlap_d, string &comp_fout,\
+                        int &analyse_flag) {
         for (int i=1; i < argc; ++i) {
             string arg = argv[i];
             if (arg == "-h") { utils::print_help(); exit (EXIT_SUCCESS);}
@@ -110,6 +166,16 @@ namespace utils {
             } else if (arg == "-l") {
                 if (i + 1 < argc) { cutoff = atoi(argv[i+1]); i++;  }
                 else { cerr << "-l option requires one argument." << endl; } 
+            } else if (arg == "--compound") {
+                compound = 1;
+            } else if (arg == "--comp-dist") {
+                if (i + 1 < argc) { overlap_d = atoi(argv[i+1]); i++;  }
+                else { cerr << "--comp-dist option requires one argument." << endl; } 
+            } else if (arg == "--comp-out") {
+                if (i + 1 < argc) { comp_fout = argv[i+1]; i++;  }
+                else { cerr << "-o option requires one argument." << endl; } 
+            } else if (arg == "-a") {
+                analyse_flag = 1;
             }
         }
         if (m == 0) { m = 1; }
@@ -117,6 +183,64 @@ namespace utils {
         if (fout == "") { fout = fin + "_looper.tsv"; }
         utils::motif_range_error(m, M);
         if (cutoff == 0) { cutoff = 2*M; }
+    }
+
+    /*
+        Parse command line arguments.
+    */
+    void parse_fastq_arguments(int argc, char* argv[], string &fin, string &fout,\
+                        unsigned int &m, unsigned int &M, unsigned int &cutoff, \
+                        unsigned int &filter_reads) {
+        for (int i=1; i < argc; ++i) {
+            string arg = argv[i];
+            if (arg == "-h") { utils::print_help(); exit (EXIT_SUCCESS);}
+            else if (arg == "-i") {
+                if (i + 1 < argc) { // Make sure we aren't at the end of argv!
+                    // Increment 'i' so we don't get the argument as the next argv[i].
+                    fin = argv[i+1]; i++; 
+                } else { // Uh-oh, there was no argument to the input file option.
+                  cerr << "-i option requires one argument." << endl;
+                } 
+            } else if (arg == "-o") {
+                if (i + 1 < argc) { fout = argv[i+1]; i++;  }
+                else { cerr << "-o option requires one argument." << endl; } 
+            } else if (arg == "-m") {
+                if (i + 1 < argc) { m = atoi(argv[i+1]); i++;  }
+                else { cerr << "-m option requires one argument." << endl; } 
+            } else if (arg == "-M") {
+                if (i + 1 < argc) { M = atoi(argv[i+1]); i++;  }
+                else { cerr << "-M option requires one argument." << endl; } 
+            } else if (arg == "-l") {
+                if (i + 1 < argc) { cutoff = atoi(argv[i+1]); i++;  }
+                else { cerr << "-l option requires one argument." << endl; } 
+            } else if (arg == "--filter-reads") {
+                filter_reads = 1;
+            }
+        }
+        if (m == 0) { m = 1; }
+        if (M == 0) { M = 6; }
+        if (fout == "") { fout = fin + "_looper.tsv"; }
+        utils::motif_range_error(m, M);
+        if (cutoff == 0) { cutoff = 2*M; }
+    }
+
+    /*
+     *  Filters redundant motif sizes for division rule checks
+     *  @param m minimum motif size
+     *  @param M maximum motif size
+     *  @return list of motif sizes to perform non-redundant checks
+    */
+    vector<unsigned int> get_motif_sizes(unsigned int m, unsigned int M) {
+        vector<unsigned int> a = {M};
+        int vsize = 0;
+        for (int i=M-1; i >= m; --i) {
+            bool check = false;
+            for (int j=0; j < vsize; j++) {
+                if (a[j] % i == 0) { check = true; break; }
+            }
+            if (!check) { a.push_back(i); vsize += 1;}
+        }
+        return a;
     }
 
 
@@ -165,68 +289,6 @@ namespace utils {
 
 
     /*
-     *  Counts the number of sequences in the input fasta file
-     *  @param filename name of the fasta file
-     *  @return number of sequences in the file (int)
-    */
-    void count_seq(string filename, int &sequences, unsigned long long int &gsize, unsigned long long int &GC) {
-        ifstream file(filename);
-        string fline;
-        while (getline(file, fline)) {
-            if (fline[0] == '>') { sequences += 1; }
-            else {
-                for(const auto c: fline) {
-                    gsize += 1;
-                    switch(c) {
-                        case 'c': case 'C': GC += 1; break;
-                        case 'g': case 'G': GC += 1; break;
-                        default: continue;
-                    }
-                }
-            }
-        }
-        file.close();
-    }
-
-    /*
-        Updating the progress bar
-        @param start_time integer denoting start time of the program
-        @param numseq number of sequences processed so far
-        @param sequences total number of sequences in the fasta file
-    */
-    void update_progress_bar(unsigned long long int start_time, int numseq, int sequences) {
-        const int BAR_WIDTH = 50;
-        float progress = (((float) numseq) / ((float) sequences));
-        unsigned long long int now = duration_cast<milliseconds>(
-            system_clock::now().time_since_epoch()
-        ).count();
-        float total_time = now-start_time;
-        int time_ps = int((total_time/float(numseq))*1000);
-        float time_per_seq = float(time_ps)/1000.0;
-        int total_secs = int(total_time);
-        int h = total_secs/3600000;
-        int m = (total_secs%3600000)/60000;
-        int s = ((total_secs%3600000)%60000)/1000;
-        int ms = ((total_secs%3600000)%60000)%1000;
-        cout << setprecision(2) << h << ":" << m << ":" << s << ":" << ms << " ";
-        cout << "[";
-        int pos = BAR_WIDTH * progress;
-        for (int i = 0; i < BAR_WIDTH; ++i) {
-            if (i < pos) cout << "=";
-            else if (i == pos) cout << ">";
-            else cout << " ";
-        }
-        
-        cout << "] " << "" << numseq << "/" << sequences << " seqs | ";
-        cout << int(progress * 100.0) << "% | ";
-        if (progress == 1) cout << time_per_seq << " sec/seq     " << endl;
-        else cout << time_per_seq << " sec/seq" << "\r";
-
-        cout.flush();
-    }
-
-
-    /*
      *  Calculates the repeat class of the sequence
      *  @param seq 64-bit integer representing 2-bit string of the sequence
      *  @param l length of the DNA sequence
@@ -260,24 +322,55 @@ namespace utils {
         return repeat_class + strand;
     }
 
+
     /*
-     *  Filters redundant motif sizes for division rule checks
-     *  @param m minimum motif size
-     *  @param M maximum motif size
-     *  @return list of motif sizes to perform non-redundant checks
+     *  Counts the number of sequences in the input fasta file
+     *  @param filename name of the fasta file
+     *  @return number of sequences in the file (int)
     */
-    vector<unsigned int> get_motif_sizes(unsigned int m, unsigned int M) {
-        vector<unsigned int> a = {M};
-        int vsize = 0;
-        for (int i=M-1; i >= m; --i) {
-            bool check = false;
-            for (int j=0; j < vsize; j++) {
-                if (a[j] % i == 0) { check = true; break; }
-            }
-            if (!check) { a.push_back(i); vsize += 1;}
+    void count_seq(string filename, int &sequences) {
+        ifstream file(filename);
+        string fline;
+        while (getline(file, fline)) {
+            if (fline[0] == '>') { sequences += 1; }
         }
-        return a;
+        file.close();
     }
+
+
+    /*
+        Updating the progress bar
+        @param start_time integer denoting start time of the program
+        @param numseq number of sequences processed so far
+        @param sequences total number of sequences in the fasta file
+    */
+    void update_progress_bar(uint64_t start_time, int numseq, int sequences) {
+        const int BAR_WIDTH = 50;
+        float progress = (((float) numseq) / ((float) sequences));
+        uint64_t now = duration_cast<milliseconds>(
+            system_clock::now().time_since_epoch()
+        ).count();
+        float total_time = float(now-start_time)/1000.0;
+        int time_ps = int((total_time/float(numseq))*1000);
+        float time_per_seq = float(time_ps)/1000.0;
+
+        cout << "Time elapsed: " << total_time << " secs\n";
+        cout << "[";
+        int pos = BAR_WIDTH * progress;
+        for (int i = 0; i < BAR_WIDTH; ++i) {
+            if (i < pos) cout << "=";
+            else if (i == pos) cout << ">";
+            else cout << " ";
+        }
+        
+        cout << "] " << "" << numseq << "/" << sequences << " seqs | ";
+        cout << int(progress * 100.0) << "% | ";
+        if (progress == 1) cout << time_per_seq << " sec/seq     " << endl;
+        else cout << time_per_seq << " sec/seq" << "\r";
+
+        cout.flush();
+    }
+
 
     /*
      *  Calculates the atomicity of a motif

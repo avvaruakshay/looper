@@ -15,17 +15,17 @@
 #include <chrono>
 #include <bits/stdc++.h> 
 
-#include "utils.h"
-#include "fastq_reader.h"
+#include "utils_win.h"
+#include "fastq_reader_win.h"
 
 using namespace std;
 using namespace std::chrono;
 
 unordered_map<string, string> rclass_map;
-unordered_map<string, uint> repeats_count, repeats_reads, repeats_bases;
-unordered_map<string, unordered_map<uint, uint>> repeats_length_freq;
-unordered_map<uint, uint> read_length_dist;
-uint total_repeats, total_repeat_reads, total_repeat_bases;
+unordered_map<string, unsigned int> repeats_count, repeats_reads, repeats_bases;
+unordered_map<string, unordered_map<unsigned int, unsigned int>> repeats_length_freq;
+unordered_map<unsigned int, unsigned int> read_length_dist;
+unsigned int total_repeats, total_repeat_reads, total_repeat_bases;
 
 /* 
  * Update repeats
@@ -34,9 +34,9 @@ uint total_repeats, total_repeat_reads, total_repeat_bases;
  * @param repeats_count        Reference for the unordered_map tracking repeats count
  * @param repeats_length_freq  Reference for the unordered_map tracking length wise frequency
 */
-void update_result( string repeat_class, uint rlen,
-                    unordered_map<string, uint> &repeats_count, unordered_map<string, uint> &repeats_bases,
-                    unordered_map<string, unordered_map<uint, uint>> &repeats_length_freq )
+void update_result( string repeat_class, unsigned int rlen,
+                    unordered_map<string, unsigned int> &repeats_count, 
+                    unordered_map<string, unordered_map<unsigned int, unsigned int>> &repeats_length_freq )
 {
     if (repeats_count.find(repeat_class) != repeats_count.end()) {
         repeats_count[repeat_class] += 1;
@@ -59,48 +59,65 @@ void update_result( string repeat_class, uint rlen,
 int main(int argc, char *argv[]) {
     ios_base::sync_with_stdio(false);
 
-    string fin = argv[1];
-    string fout = argv[2];
-    ofstream filterOut;
-    bool filter_reads = false;
-    if (argv[3]) {
-        filter_reads = true;
-        filterOut.open(argv[3]);
+    string fin, fout;
+    unsigned int m = 0, M = 0, cutoff = 0, d = 0;
+    unsigned int filter_reads = 0;
+    if (argc == 1) { utils::print_help(); exit (EXIT_FAILURE); }
+    else if (argc > 1) {
+        utils::parse_fastq_arguments(argc, argv, fin, fout, m, M, cutoff, filter_reads);
+        utils::length_cutoff_error(M, cutoff);
     }
-    
 
     fastq::FastqFile ins; ins.parse(fin);
     utils::input_file_error(ins.ins.good(), fin);
     
-    ofstream out(fout); 
+    ofstream out(fout);
+    ofstream filterOut;
+    if (filter_reads == 1) {
+        filterOut.open(fout.substr(0, fout.length() - 4) + ".filtered.fastq");
+    } 
     utils::bitSeqWindow window;
-
-    $ python_input;
 
     cout << endl << "Searching for tandem repeats in " << fin << endl;
     cout << "Min-motif: " << m << "\t Max-motif: " << M;
     cout << "\t Length-cutoff: " << cutoff <<  endl;
 
-    uint64_t start_time = duration_cast<milliseconds>(
+    unsigned long long int start_time = duration_cast<milliseconds>(
         system_clock::now().time_since_epoch()
     ).count();
 
     // integer tracking the start of the repeat
     // -1 indicates no repeat is found 
-    int64_t start = -1; 
-    uint64_t end;
-    int rlen, atomicity;
-    int window_repeat_check = 0;  // bool tracking if the window sequence is a repeat
+    long long int start = -1; 
+    unsigned long long int end;
+    unsigned int atomicity, rlen;
+    int window_repeat_check = 0;  // current window repeat check
     string seq_name, motif, repeat_class, strand;
 
     // bitstring to retrieve window sequence with AND operation
-    const uint64_t NORM = ~(0ull) >> 2*(32-cutoff); 
+    const unsigned long long int NORM = ~(0ull) >> 2*(32-cutoff); 
     fastq::Read curr_read = ins.fetch();
+
+
+    // non-redundant list of motifs used for checks
+    vector<unsigned int> motif_checks = utils::get_motif_sizes(m, M);
+    const unsigned int N = motif_checks.size();
+    unsigned long long int divisor[N]; // list of divisors
+    unsigned int rem_shift[N]; // list of remainder sizes
+    for (int i=0; i<N; i++) {
+        unsigned int d = cutoff / motif_checks[i];
+        unsigned int r = cutoff % motif_checks[i];
+        unsigned long long int D = 0ull;
+        for (int j=0; j<d; j++) { D = D << (2*motif_checks[i]); D += 1; }
+        D = D << (2*r);
+        divisor[i] = D;
+        rem_shift[i] = 2*(cutoff - r);
+    }
     
     while(curr_read.valid) {
         window.reset();
         bool filter = false;
-        uint read_length = curr_read.sequence.length();
+        unsigned int read_length = curr_read.sequence.length();
         if (read_length_dist.find(read_length) != read_length_dist.end()) {
             read_length_dist[read_length] += 1;
         } else { read_length_dist[read_length] = 1; }
@@ -118,8 +135,7 @@ int main(int argc, char *argv[]) {
                     if (start != -1) {
                         filter = true;
                         end = window.count; rlen = end - start;
-                        total_repeat_bases += rlen;
-                        update_result(repeat_class, rlen, repeats_count, repeats_bases, repeats_length_freq);
+                        update_result(repeat_class, rlen, repeats_count, repeats_length_freq);
                     }
                     start = -1;
                     break;
@@ -136,16 +152,14 @@ int main(int argc, char *argv[]) {
                         if ( (window.seq % divisor[i]) == ( window.seq >> rem_shift[i]) ) {
                             if (start == -1) { 
                                 atomicity = utils::check_atomicity(window.seq, cutoff, motif_checks[i]);
-
-                                // atomicity should be greater than 
-                                // minimum motif-size
-                                if (atomicity >= m) {
+                                
+                                if (atomicity >= m ) {
                                     filter = true;
                                     total_repeats += 1;
                                     start = window.count - cutoff; 
                                     motif = utils::bit2base(window.seq, cutoff, atomicity);
                                     if (rclass_map.find(motif) != rclass_map.end()) {
-                                        repeat_class = rclass_map[motif];
+                                        repeat_class = rclass_map[motif];    
                                     } else {
                                         repeat_class = utils::get_repeat_class(window.seq, cutoff, atomicity, rclass_map);
                                     }
@@ -163,7 +177,7 @@ int main(int argc, char *argv[]) {
                     filter = true;
                     end = window.count - 1; rlen = end - start;
                     total_repeat_bases += rlen;
-                    update_result(repeat_class, rlen, repeats_count, repeats_bases, repeats_length_freq);
+                    update_result(repeat_class, rlen, repeats_count, repeats_length_freq);
 
                     start = -1;
                 }
@@ -171,12 +185,12 @@ int main(int argc, char *argv[]) {
             window.seq <<= 2;
         }
 
-        // if read ends in a repeat
+        // if reat ends in a repeat
         if (start != -1) {
             filter = true;
-            end = window.count; rlen = end - start;
+            end = window.count - 1; rlen = end - start;
             total_repeat_bases += rlen;
-            update_result(repeat_class, rlen, repeats_count, repeats_bases, repeats_length_freq);
+            update_result(repeat_class, rlen, repeats_count, repeats_length_freq);
             start = -1;
         }
 
@@ -192,7 +206,7 @@ int main(int argc, char *argv[]) {
         }
 
         if (ins.currentCount() % 50000 == 0 ) {
-            uint64_t now = duration_cast<milliseconds>(
+            unsigned long long int now = duration_cast<milliseconds>(
                 system_clock::now().time_since_epoch()
             ).count();
             float total_time = float(now-start_time)/1000.0;
@@ -213,7 +227,7 @@ int main(int argc, char *argv[]) {
         curr_read = ins.fetch();
     }
 
-    uint64_t now = duration_cast<milliseconds>(
+    unsigned long long int now = duration_cast<milliseconds>(
         system_clock::now().time_since_epoch()
     ).count();
     float total_time = float(now-start_time)/1000.0;
@@ -231,12 +245,12 @@ int main(int argc, char *argv[]) {
     out << "#NumRepClasses: "       << repeats_count.size() << "\n";
 
     out << "#ReadLengthDist: ";
-    vector<uint> read_lengths;
+    vector<unsigned int> read_lengths;
     for(auto it = read_length_dist.begin(); it != read_length_dist.end(); it++) {
-        uint length = it->first;
+        unsigned int length = it->first;
         read_lengths.push_back(length);
     }
-    sort(read_lengths.begin(), read_lengths.end(), [](uint a, uint b) { return a < b; });
+    sort(read_lengths.begin(), read_lengths.end(), [](unsigned int a, unsigned int b) { return a < b; });
     for (auto l = read_lengths.begin(); l != read_lengths.end(); l++) {
         if (l == read_lengths.end() - 1) {
             out << *l << '-' << read_length_dist[*l];
@@ -247,19 +261,19 @@ int main(int argc, char *argv[]) {
     out << "\n";
 
     for (auto it = repeats_count.begin(); it != repeats_count.end(); it++) {
-        uint reads = ins.currentCount();
+        unsigned int reads = ins.currentCount();
         string rclass = it->first;
-        uint freq = it->second;
-        uint rreads = repeats_reads[rclass];
-        uint rbases = repeats_bases[rclass];
+        unsigned int freq = it->second;
+        unsigned int rreads = repeats_reads[rclass];
+        unsigned int rbases = repeats_bases[rclass];
         out << rclass << "\t" << freq << "\t" << rreads << "\t" \
             //<< (float(rreads)/float(reads))*100000 << "\t"
             << rbases << "\t";
-        vector<uint> rlengths;
+        vector<unsigned int> rlengths;
         for(auto it=repeats_length_freq[rclass].begin(); it!=repeats_length_freq[rclass].end(); it++) {
             rlengths.push_back(it->first);
         }
-        sort(rlengths.begin(), rlengths.end(), [](uint a, uint b) { return a < b; });
+        sort(rlengths.begin(), rlengths.end(), [](unsigned int a, unsigned int b) { return a < b; });
         for (auto jt = rlengths.begin(); jt != rlengths.end(); jt++) {
             if (jt == rlengths.end() - 1) {
                 out << *jt << "-" << repeats_length_freq[rclass][*jt];

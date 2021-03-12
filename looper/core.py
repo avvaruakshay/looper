@@ -129,126 +129,142 @@ def main():
     M = args.max_motif_size
     cutoff = args.min_length
 
-    motif_checks = motif_factors(m, M)
-    N = len(motif_checks)
-    motif_checks_string = '{'
-    for a in motif_checks: motif_checks_string += str(a) + ','
-    motif_checks_string = motif_checks_string[:-1] + '}'
-
-    divisor = []
-    rem_shift = []
-    # Calculating all division variables based on the input parameters
-    for i, a in enumerate(motif_checks): 
-        d = cutoff // motif_checks[i]
-        r = cutoff % motif_checks[i]
-        D = ('0'*((2*a)-1) + '1')*d + '0'*(2*r)
-        divisor.append(int(D, 2))
-        rem_shift.append( int(2*(cutoff - (cutoff % motif_checks[i]))) )
-
-    compound_string = 'uint compound = 0;'
-    overlap_d_string = 'int overlap_d = 0;'
-    if args.compound:
-        compound_string = compound_string[:-2] + '1;'
-        overlap_d_string = overlap_d_string[:-2] + str(args.comp_dist) + ';'
-
-    div_string = 'uint64_t divisor[{N}] = '.format(N=N) + '{'
-    for a in divisor: div_string += str(a) + ','
-    div_string = div_string[:-1] + '}'
-
-    rem_shift_string = 'uint rem_shift[{N}] = '.format(N=N) + '{'
-    for a in rem_shift: rem_shift_string += str(a) + ','
-    rem_shift_string = rem_shift_string[:-1] + '}'
-
-    template_file = ''
-    filtered_file = ''
-    seq_count = 0
-    if args.format == 'fasta':
-        seq_count = rawcharCount(args.input, '>')
-        if args.input.endswith('gz'):
-            template_file = '{current_dir}/templates/pylooper_fasta_gzip_template.cpp'.format(current_dir=current_dir)
-        else:
-            template_file = '{current_dir}/templates/pylooper_fasta_template.cpp'.format(current_dir=current_dir)
-    elif args.format == 'fastq':
-        if args.input.endswith('.gz'):
-            template_file = '{current_dir}/templates/pylooper_fastq_gzip_template.cpp'.format(current_dir=current_dir)
-        else:
-            template_file = '{current_dir}/templates/pylooper_fastq_template.cpp'.format(current_dir=current_dir)
-        if args.filter_reads: 
-            filtered_file = splitext(args.input)[0] + '_looper.filtered.fastq'
-
-    script = open('{current_dir}/pylooper.cpp'.format(current_dir=current_dir), 'w')
-    with open(template_file) as fh:
-        for line in fh:
-            line = line.rstrip()
-            if line.strip() == '$ python_input;':
-                prefix = line[:line.find('$')]
-                line = '{prefix}uint cutoff = {cutoff};'.format(prefix=prefix, cutoff=cutoff)
-                line += '\n{prefix}uint m = {m};'.format(prefix=prefix, m=m)
-                line += '\n{prefix}uint M = {M};'.format(prefix=prefix, M=M)
-                line += '\n{prefix}uint motif_checks[{N}] = {motif_checks_string};'.format(prefix=prefix, N=N, motif_checks_string=motif_checks_string)
-                line += '\n{prefix}uint N = {N};'.format(prefix=prefix, N=N)
-                line += '\n{prefix}{div_string};'.format(prefix=prefix, div_string=div_string)
-                line += '\n{prefix}{rem_shift_string};'.format(prefix=prefix, rem_shift_string=rem_shift_string)
-                line += '\n{prefix}{compound_string};'.format(prefix=prefix, compound_string=compound_string)
-                line += '\n{prefix}{overlap_d_string};'.format(prefix=prefix, overlap_d_string=overlap_d_string)
-                line += '\n{prefix}int sequences = {seq_count};'.format(prefix=prefix, seq_count=seq_count)
-            if line.strip() == '$ fasta_gzip;':
-                prefix = line[:line.find('$')]
-                line = '{prefix}string fin = "{filename}";'.format(prefix=prefix, filename=args.input)
-            print(line, file=script)
-    script.close()
-    status = os.system('g++ {current_dir}/pylooper.cpp -O3 -o {current_dir}/pylooper'.format(current_dir=current_dir))
-    if sys.platform.startswith('linux') and status != 0:
-        print('\n\nError compiling the cpp auxiliary code. Please check for proper installation of g++. ')
-        sys.exit()
+    if sys.platform.startswith('win'):
+        if args.format == 'fasta':
+            command = ['./templates/wlooper_fasta.exe']
+            if args.analyse: command.append('-a')
+            if args.compound:
+                command.append('--compound')
+                comp_out = '.'.join(args.output.split('.')[:-1]) + '.compound.' + args.output.split('.')[-1]
+                command.append('--comp-out {comp_out}'.format(comp_out=comp_out))
+                command.append('--comp-dist {comp_dist}'.format(comp_dist=args.comp_dist))
+        if args.format == 'fastq':
+            command = ['./templates/wlooper_fastq.exe']
+        command.append('-i {input_file}'.format(input_file=args.input))
+        command.append('-o {output_file}'.format(output_file=args.output))
+        command.append('-m {m}'.format(m=m))
+        command.append('-M {M}'.format(M=M))
+        command.append('-l {l}'.format(l=cutoff))
     
-    end_time = datetime.now()
-    total_time = end_time-start_time
+    elif sys.platform.startswith('linux'):
+        motif_checks = motif_factors(m, M)
+        N = len(motif_checks)
+        motif_checks_string = '{'
+        for a in motif_checks: motif_checks_string += str(a) + ','
+        motif_checks_string = motif_checks_string[:-1] + '}'
 
-    print('\nProcessing time: {total_time} secs'.format(total_time=round(total_time.total_seconds(), 2)))
+        divisor = []
+        rem_shift = []
+        # Calculating all division variables based on the input parameters
+        for i, a in enumerate(motif_checks): 
+            d = cutoff // motif_checks[i]
+            r = cutoff % motif_checks[i]
+            D = ('0'*((2*a)-1) + '1')*d + '0'*(2*r)
+            divisor.append(int(D, 2))
+            rem_shift.append( int(2*(cutoff - (cutoff % motif_checks[i]))) )
 
-    if args.format == 'fasta':
-        analyse_flag = 0
-        if args.analyse:analyse_flag = 1
-        comp_out = ''
+        compound_string = 'uint compound = 0;'
+        overlap_d_string = 'int overlap_d = 0;'
         if args.compound:
-            comp_out = '.'.join(args.output.split('.')[:-1]) + '.compound.' + args.output.split('.')[-1]
-        if args.input.endswith('.gz'):
-            os.system(
-                'zcat {input} | {current_dir}/pylooper {output} {analyse_flag} {comp_out}'
-                    .format(
-                        input=args.input,
-                        current_dir=current_dir,
-                        output=args.output,
-                        analyse_flag=analyse_flag,
-                        comp_out=comp_out
-                    )
-            )
-        else:
-            os.system(
-                '{current_dir}/pylooper {input} {output} {analyse_flag} {comp_out}'
-                    .format(
-                        current_dir=current_dir,
-                        input=args.input,
-                        output=args.output,
-                        analyse_flag=analyse_flag,
-                        comp_out=comp_out
-                    )
-            )
+            compound_string = compound_string[:-2] + '1;'
+            overlap_d_string = overlap_d_string[:-2] + str(args.comp_dist) + ';'
 
-        if args.annotate: annotate_repeats(args)
-    
-    elif args.format == 'fastq':
-        if args.input.endswith('.gz') and args.filter_reads:
-            os.system('zcat {input} {filtered_file} | {current_dir}/pylooper {output} '.format(input=args.input, current_dir=current_dir, output=args.output, filtered_file=filtered_file))
-        elif args.input.endswith('.gz'):
-            os.system('zcat {input} | {current_dir}/pylooper {output} '.format(input=args.input, current_dir=current_dir, output=args.output))
-        elif args.filter_reads:
-            os.system('{current_dir}/pylooper  {input} {output} {filtered_file}'.format(current_dir=current_dir, input=args.input, output=args.output, filtered_file=filtered_file))
-        else:
-            os.system('{current_dir}/pylooper {input} {output}'.format(current_dir=current_dir, input=args.input, output=args.output))
+        div_string = 'uint64_t divisor[{N}] = '.format(N=N) + '{'
+        for a in divisor: div_string += str(a) + ','
+        div_string = div_string[:-1] + '}'
 
+        rem_shift_string = 'uint rem_shift[{N}] = '.format(N=N) + '{'
+        for a in rem_shift: rem_shift_string += str(a) + ','
+        rem_shift_string = rem_shift_string[:-1] + '}'
 
+        template_file = ''
+        filtered_file = ''
+        seq_count = 0
+        if args.format == 'fasta':
+            seq_count = rawcharCount(args.input, '>')
+            if args.input.endswith('gz'):
+                template_file = '{current_dir}/templates/pylooper_fasta_gzip_template.cpp'.format(current_dir=current_dir)
+            else:
+                template_file = '{current_dir}/templates/pylooper_fasta_template.cpp'.format(current_dir=current_dir)
+        elif args.format == 'fastq':
+            if args.input.endswith('.gz'):
+                template_file = '{current_dir}/templates/pylooper_fastq_gzip_template.cpp'.format(current_dir=current_dir)
+            else:
+                template_file = '{current_dir}/templates/pylooper_fastq_template.cpp'.format(current_dir=current_dir)
+            if args.filter_reads: 
+                filtered_file = splitext(args.input)[0] + '_looper.filtered.fastq'
+
+        script = open('{current_dir}/pylooper.cpp'.format(current_dir=current_dir), 'w')
+        with open(template_file) as fh:
+            for line in fh:
+                line = line.rstrip()
+                if line.strip() == '$ python_input;':
+                    prefix = line[:line.find('$')]
+                    line = '{prefix}uint cutoff = {cutoff};'.format(prefix=prefix, cutoff=cutoff)
+                    line += '\n{prefix}uint m = {m};'.format(prefix=prefix, m=m)
+                    line += '\n{prefix}uint M = {M};'.format(prefix=prefix, M=M)
+                    line += '\n{prefix}uint motif_checks[{N}] = {motif_checks_string};'.format(prefix=prefix, N=N, motif_checks_string=motif_checks_string)
+                    line += '\n{prefix}uint N = {N};'.format(prefix=prefix, N=N)
+                    line += '\n{prefix}{div_string};'.format(prefix=prefix, div_string=div_string)
+                    line += '\n{prefix}{rem_shift_string};'.format(prefix=prefix, rem_shift_string=rem_shift_string)
+                    line += '\n{prefix}{compound_string};'.format(prefix=prefix, compound_string=compound_string)
+                    line += '\n{prefix}{overlap_d_string};'.format(prefix=prefix, overlap_d_string=overlap_d_string)
+                    line += '\n{prefix}int sequences = {seq_count};'.format(prefix=prefix, seq_count=seq_count)
+                if line.strip() == '$ fasta_gzip;':
+                    prefix = line[:line.find('$')]
+                    line = '{prefix}string fin = "{filename}";'.format(prefix=prefix, filename=args.input)
+                print(line, file=script)
+        script.close()
+        status = os.system('g++ {current_dir}/pylooper.cpp -O3 -o {current_dir}/pylooper'.format(current_dir=current_dir))
+        if sys.platform.startswith('linux') and status != 0:
+            print('\n\nError compiling the cpp auxiliary code. Please check for proper installation of g++. ')
+            sys.exit()
+        
+        end_time = datetime.now()
+        total_time = end_time-start_time
+
+        print('\nProcessing time: {total_time} secs'.format(total_time=round(total_time.total_seconds(), 2)))
+
+        if args.format == 'fasta':
+            analyse_flag = 0
+            if args.analyse:analyse_flag = 1
+            comp_out = ''
+            if args.compound:
+                comp_out = '.'.join(args.output.split('.')[:-1]) + '.compound.' + args.output.split('.')[-1]
+            if args.input.endswith('.gz'):
+                os.system(
+                    'zcat {input} | {current_dir}/pylooper {output} {analyse_flag} {comp_out}'
+                        .format(
+                            input=args.input,
+                            current_dir=current_dir,
+                            output=args.output,
+                            analyse_flag=analyse_flag,
+                            comp_out=comp_out
+                        )
+                )
+            else:
+                os.system(
+                    '{current_dir}/pylooper {input} {output} {analyse_flag} {comp_out}'
+                        .format(
+                            current_dir=current_dir,
+                            input=args.input,
+                            output=args.output,
+                            analyse_flag=analyse_flag,
+                            comp_out=comp_out
+                        )
+                )
+
+        elif args.format == 'fastq':
+            if args.input.endswith('.gz') and args.filter_reads:
+                os.system('zcat {input} {filtered_file} | {current_dir}/pylooper {output} '.format(input=args.input, current_dir=current_dir, output=args.output, filtered_file=filtered_file))
+            elif args.input.endswith('.gz'):
+                os.system('zcat {input} | {current_dir}/pylooper {output} '.format(input=args.input, current_dir=current_dir, output=args.output))
+            elif args.filter_reads:
+                os.system('{current_dir}/pylooper  {input} {output} {filtered_file}'.format(current_dir=current_dir, input=args.input, output=args.output, filtered_file=filtered_file))
+            else:
+                os.system('{current_dir}/pylooper {input} {output}'.format(current_dir=current_dir, input=args.input, output=args.output))
+
+    if args.format == 'fasta' and args.annotate: annotate_repeats(args)
 
     if args.analyse:
         if args.format == 'fasta': analyse_fasta(args)

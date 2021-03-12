@@ -1,3 +1,10 @@
+/*
+    Looper: DNA tandem repeat identification tool
+    @file looper.cpp
+    @author Akshay Avvaru
+    @version 0.1 06/08/2020
+*/
+
 #include <fstream>
 #include <iostream>
 #include <math.h>
@@ -7,7 +14,7 @@
 #include <chrono>
 #include <assert.h>
 
-#include "utils.h"
+#include "utils_win.h"
 
 using namespace std;
 using namespace std::chrono;
@@ -16,43 +23,65 @@ using namespace std::chrono;
 int main(int argc, char* argv[]) {
     ios_base::sync_with_stdio(false);
 
-    string fin = argv[1];
-    string fout = argv[2];
+    string fin, fout, comp_fout;
+    unsigned int m = 0, M = 0, cutoff = 0;
+    int compound = 0, overlap_d = 0;
+    int analyse_flag = 0;
+    if (argc == 1) { utils::print_help(); exit (EXIT_FAILURE); }
+    else if (argc > 1) { 
+        utils::parse_arguments(argc, argv, fin, fout, m, M, cutoff, \
+                                compound, overlap_d, comp_fout, analyse_flag);
+        utils::length_cutoff_error(M, cutoff);
+    }
 
-    uint64_t gsize = 0, GC = 0;
-    ifstream ins(fin);
+    unsigned long long int gsize = 0, GC = 0;
+    int sequences = 0;
+    utils::count_seq(fin, sequences); // total number of sequences
+    
+    ifstream ins(fin); // input fasta file
     utils::input_file_error(ins.good(), fin);
-    ofstream out(fout);
+    ofstream out(fout); // output file
+    ofstream comp_out(comp_fout);
 
     unordered_map<string, string> rclass_map;
     string line;
     utils::bitSeqWindow window;
     utils::compoundRepeat compound_repeat;
-    
-    ofstream comp_out(argv[4]);
 
-    $ python_input;
-
-    cout << '\n' << "Searching for tandem repeats in " << fin << '\n';
+    cout << endl << "Searching for tandem repeats in " << fin << endl;
     cout << "Min-motif: " << m << "\t Max-motif: " << M;
-    cout << "\t Length-cutoff: " << cutoff <<  "\n\n";
+    cout << "\t Length-cutoff: " << cutoff <<  endl << endl;
 
-    uint64_t start_time = duration_cast<milliseconds>(
+    unsigned long long int start_time = duration_cast<milliseconds>(
         system_clock::now().time_since_epoch()
     ).count();
 
-
     // integer tracking the start of the repeat
     // -1 indicates no repeat is found 
-    int64_t start = -1; 
-    int64_t end;
+    long long int start = -1; 
+    long long int end;
     int rlen, atomicity;
     int window_repeat_check = 0;  // bool tracking if the window sequence is a repeat
-    int numseq = 0;    // current sequence number
+    int numseq = 0; // current sequence number
+    
     string seq_name, motif, repeat_class, strand;
 
     // NORM is require to fetch the current window sequence
-    uint64_t const NORM = ~(0ull) >> 2*(32-cutoff);
+    unsigned long long int const NORM = ~(0ull) >> 2*(32-cutoff);
+    // non-redundant list of motifs used for checks
+    vector<unsigned int> motif_checks = utils::get_motif_sizes(m, M);
+    const unsigned int N = motif_checks.size();
+    unsigned long long int divisor[N]; // list of divisors
+    unsigned int rem_shift[N]; // list of remainder sizes
+    for (int i=0; i<N; i++) {
+        unsigned int d = cutoff / motif_checks[i];
+        unsigned int r = cutoff % motif_checks[i];
+        unsigned long long int D = 0ull;
+        for (int j=0; j<d; j++) { D = D << (2*motif_checks[i]); D += 1; }
+        D = D << (2*r);
+        divisor[i] = D;
+        rem_shift[i] = 2*(cutoff - r);
+    }
 
     while(getline(ins, line)) {
         if (line[0] == '>') {
@@ -71,9 +100,9 @@ int main(int argc, char* argv[]) {
                     << strand << "\t" << rlen/atomicity << "\t" << motif << '\n';
             }
             compound_repeat.reset();
-            seq_name = line.substr(1, line.find(" ")-1);
+            seq_name = line.substr(1, line.find(' ')-1);
             window.reset(); start = -1;
-
+            
             utils::update_progress_bar(start_time, numseq, sequences);
             numseq++;
         }
@@ -184,17 +213,16 @@ int main(int argc, char* argv[]) {
             << repeat_class << "\t" << rlen << "\t" \ 
             << strand << "\t" << rlen/atomicity << "\t" << motif << '\n';
     }
-    
-    string analyse_flag = argv[3];
-    if (analyse_flag == "1") {
+
+    if (analyse_flag) {
         float gc_percent = (float(GC) / float(gsize))*100;
         out << "#FileName: " << fin << '\n';
         out << "#GenomeSize: " << gsize << '\n';
         out << "#GC: " << gc_percent << '\n';
         out << "#NumSeq: " << sequences << '\n';
     }
-
-    uint64_t end_time = duration_cast<milliseconds>(
+    
+    unsigned long long int end_time = duration_cast<milliseconds>(
         system_clock::now().time_since_epoch()
     ).count();
     float total_time = float(end_time - start_time)/1000.0;
