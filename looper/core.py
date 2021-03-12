@@ -121,6 +121,7 @@ def main():
 
     start_time = datetime.now()
     current_dir = os.path.dirname(__file__)
+    print(current_dir)
     current_dir = '/'.join(os.path.abspath(__file__).split('/')[:-1])
 
     args = getArgs()
@@ -130,8 +131,9 @@ def main():
     cutoff = args.min_length
 
     if sys.platform.startswith('win'):
+        current_dir = '\\'.join(os.path.abspath(__file__).split('\\')[:-1])
         if args.format == 'fasta':
-            command = ['./templates/wlooper_fasta.exe']
+            command = ['{current_dir}\\templates\\wlooper_fasta.exe'.format(current_dir=current_dir)]
             if args.analyse: command.append('-a')
             if args.compound:
                 command.append('--compound')
@@ -139,12 +141,14 @@ def main():
                 command.append('--comp-out {comp_out}'.format(comp_out=comp_out))
                 command.append('--comp-dist {comp_dist}'.format(comp_dist=args.comp_dist))
         if args.format == 'fastq':
-            command = ['./templates/wlooper_fastq.exe']
+            command = ['{current_dir}\\templates\\wlooper_fastq.exe'.format(current_dir=current_dir)]
         command.append('-i {input_file}'.format(input_file=args.input))
         command.append('-o {output_file}'.format(output_file=args.output))
         command.append('-m {m}'.format(m=m))
         command.append('-M {M}'.format(M=M))
         command.append('-l {l}'.format(l=cutoff))
+        os.system(' '.join(command))
+
     
     elif sys.platform.startswith('linux'):
         motif_checks = motif_factors(m, M)
