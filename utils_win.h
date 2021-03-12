@@ -366,7 +366,7 @@ namespace utils {
         cout << "] " << "" << numseq << "/" << sequences << " seqs | ";
         cout << int(progress * 100.0) << "% | ";
         if (progress == 1) cout << time_per_seq << " sec/seq     " << endl;
-        else cout << time_per_seq << " sec/seq" << "\r";
+        else cout << time_per_seq << " sec/seq" << "\033[F";
 
         cout.flush();
     }
