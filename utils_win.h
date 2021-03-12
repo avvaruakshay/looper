@@ -354,7 +354,7 @@ namespace utils {
         int time_ps = int((total_time/float(numseq))*1000);
         float time_per_seq = float(time_ps)/1000.0;
 
-        cout << "Time elapsed: " << total_time << " secs\n";
+        cout << "Time elapsed: " << total_time << " secs\t";
         cout << "[";
         int pos = BAR_WIDTH * progress;
         for (int i = 0; i < BAR_WIDTH; ++i) {
