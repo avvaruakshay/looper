@@ -255,16 +255,19 @@ def annotate_repeats(args):
     print('', end='\n')
     # Counting the number of lines in bed -------------------------------------
     total_regions = rawcharCount(rep_file, '\n')
+    if args.analyse: total_regions -= 4
     with open(rep_file) as bed:
         prev_seqname = "Initialise" # Initialise for checking the prev_seqname
         min_start_index, min_index = [0,0]
-        for line in tqdm(bed, total=total_regions):
+        pbar = tqdm(total=total_regions)
+        for line in bed:
             # Object for the output entries to be appended --------------------
             Annotations = {'Genic': [], 'Exon': [], 'Intron': []}
             line = line.strip()
             if line.startswith('#'):
                 print(line.strip(), file = output_file)
             else:
+                pbar.update(1)
                 fields = line.split('\t')
                 seqname = fields[0]
                 # If the seqname is not same the previous seq name the check
@@ -409,6 +412,7 @@ def annotate_repeats(args):
                 else:
                     for anno in Annotations:
                         print(Annotations[anno], file = output_file)
+        pbar.close()
     output_file.close()
 
 if __name__ == "__main__":

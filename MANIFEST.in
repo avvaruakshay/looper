@@ -3,4 +3,5 @@ include looper/lib/looper_fasta_template.html
 include looper/lib/looper_fastq_template.html
 include looper/lib/src/*js
 include looper/lib/styles/*css
+include looper/lib/*jpg
 include looper/*.h

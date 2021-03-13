@@ -121,7 +121,6 @@ def main():
 
     start_time = datetime.now()
     current_dir = os.path.dirname(__file__)
-    print(current_dir)
     current_dir = '/'.join(os.path.abspath(__file__).split('/')[:-1])
 
     args = getArgs()

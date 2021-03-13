@@ -3,7 +3,8 @@
 [![Build](https://img.shields.io/badge/Build-passing-brightgreen.svg)]()
 [![License](https://img.shields.io/badge/Licence-MIT-blue.svg)]()
 
-<img src="./looper/lib/looper_logo.jpg" alt="logo" height="80"/>
+<img src="./lib/looper_logo.jpg" height="80"/>
+<img src="./looper/lib/looper_logo.jpg" height="80"/>
 
 Looper is a DNA tandem repeat identification tool. Tandem repeats are important 
 genomic sequences which have functional and evolutionary significance.
@@ -16,19 +17,27 @@ Looper captures a mathematical property exhibited by binary number representatio
 
 
 
-<img src="./looper/lib/4097_figure1_v2.jpg" alt="explanation-figure"/>
+<img src="./lib/4097_figure1_v2.jpg"/>
+<img src="./looper/lib/4097_figure1_v2.jpg"/>
 A) 2-bit representation for each nucleotide. B) Example repeat sequence of ACT motif with 2 complete units and a partial suffix of 2 bases. C) Binary representation of the repeat sequence generates a number denoted by S. A divisor (D) is built based on the length of the repeat, the motif and the partial suffix. The division of S with D yields a quotient which is equal to binary representation of the motif and the remainder equals binary representation of partial suffix.
+<br><br>
 
+
+### Installation
+
+```bash
+$ pip install looper_ssr
+```
 
 ### Usage
 
 The help message and available options can be accessed using
 ```bash
-$ python looper.py -h 
+$ looper_ssr -h 
 ```
 which gives the following output
 ```
-usage: looper.py [-h] -i <FILE> [-o <FILE>] [-m <INT>] [-M <INT>] [-l <INT>] [-a] [-g <FILE>]
+usage: looper_ssr [-h] -i <FILE> [-o <FILE>] [-m <INT>] [-M <INT>] [-l <INT>] [-a] [-g <FILE>]
                  [--anno-format <STR>] [--gene-key <STR>] [--up-promoter <INT>]
                  [--down-promoter <INT>]
 
