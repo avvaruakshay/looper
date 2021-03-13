@@ -3,8 +3,8 @@
 [![Build](https://img.shields.io/badge/Build-passing-brightgreen.svg)]()
 [![License](https://img.shields.io/badge/Licence-MIT-blue.svg)]()
 
-<img src="./lib/looper_logo.jpg" height="80" alt=""/>
-<img src="./looper/lib/looper_logo.jpg" height="80" alt=""/>
+<img src="./lib/looper_logo.jpg" style="max-height: 80px" alt=""/>
+<img src="./looper/lib/looper_logo.jpg" style="max-height: 80px" alt=""/>
 
 Looper is a DNA tandem repeat identification tool. Tandem repeats are important 
 genomic sequences which have functional and evolutionary significance.
@@ -14,7 +14,6 @@ Looper is scripted in C++.
 ### Working principle
 
 Looper captures a mathematical property exhibited by binary number representations of DNA tandem repeats. In the binary number or the 2-bit format of DNA sequences, nucleotides are represented by 4 different combinations of 2 binary digits (bits). The binary number representations of DNA tandem repeats conform to a unique division rule. Looper scans the genome in windows, converts each window sequence to a binary number and checks if the number qualifies the division rule. The detailed explanation of the algorithm is below and an overview of the method is depicted in the figure below.
-
 
 
 <img src="./lib/4097_figure1_v2.jpg" alt=""/>
